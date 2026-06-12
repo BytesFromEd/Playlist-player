@@ -2,7 +2,7 @@ namespace playlistPlayer.Core;
 
 public class Author
 {
-    public string Name;
+    private string name;
 
     public Author() { }
 }
