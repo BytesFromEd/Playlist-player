@@ -1,8 +1,11 @@
 namespace playlistPlayer.Core;
 
-public class Author
+public class Author(string name)
 {
-    private string name;
+    private readonly string name = name;
 
-    public Author() { }
+    public string GetName()
+    {
+        return name;
+    }
 }
