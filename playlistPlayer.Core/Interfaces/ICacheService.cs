@@ -1,6 +1,8 @@
-namespace playlistPlayer.Core;
+namespace playlistPlayer.Core.Interfaces;
 
-interface ICacheService
+using playlistPlayer.Core.Models;
+
+public interface ICacheService
 {
     public void SaveSong(Song song);
     public Song GetSong(string id);

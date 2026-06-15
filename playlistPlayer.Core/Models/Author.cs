@@ -1,4 +1,4 @@
-namespace playlistPlayer.Core;
+namespace playlistPlayer.Core.Models;
 
 public class Author(string name)
 {

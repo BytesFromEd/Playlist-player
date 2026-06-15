@@ -1,6 +1,8 @@
-namespace playlistPlayer.Core;
+namespace playlistPlayer.Core.Interfaces;
 
-interface IAudioPlayer
+using playlistPlayer.Core.Models;
+
+public interface IAudioPlayer
 {
     public void PlaySong(Song song);
     public void Resume();

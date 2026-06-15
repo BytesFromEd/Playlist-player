@@ -1,6 +1,6 @@
-namespace playlistPlayer.Core;
+namespace playlistPlayer.Core.Models;
 
-class Playlist
+public class Playlist
 {
     private readonly string name;
     private readonly string owner;

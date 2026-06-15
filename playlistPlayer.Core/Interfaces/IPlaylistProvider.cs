@@ -1,6 +1,8 @@
-namespace playlistPlayer.Core;
+namespace playlistPlayer.Core.Interfaces;
 
-interface IPlaylistProvider
+using playlistPlayer.Core.Models;
+
+public interface IPlaylistProvider
 {
     public Playlist GetPlaylist(string url);
 }

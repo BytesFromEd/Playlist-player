@@ -1,13 +1,13 @@
-namespace playlistPlayer.Core;
+namespace playlistPlayer.Core.Models;
 
-public class Song(string id, string title, Author artist, string file, string cover, TimeSpan duration)
+public class Song(string id, string title, Author artist, string file, TimeSpan duration, DateTime lastPlayed)
 {
-    private string id = id;
-    private string title = title;
-    private Author artist = artist;
-    private string file = file;
-    private string cover = cover;
-    private TimeSpan duration = duration;
+    private readonly string id = id;
+    private readonly string title = title;
+    private readonly Author artist = artist;
+    private readonly string file = file;
+    private readonly TimeSpan duration = duration;
+    private readonly DateTime lastPlayed = lastPlayed;
 
     public string GetId()
     {
@@ -24,11 +24,6 @@ public class Song(string id, string title, Author artist, string file, string co
         return file;
     }
 
-    public string GetCover()
-    {
-        return cover;
-    }
-
     public Author GetArtist()
     {
         return artist;
@@ -37,5 +32,10 @@ public class Song(string id, string title, Author artist, string file, string co
     public TimeSpan GetDuration()
     {
         return duration;
+    }
+
+    public DateTime GetLastPlayed()
+    {
+        return lastPlayed;
     }
 }

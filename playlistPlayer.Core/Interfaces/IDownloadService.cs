@@ -1,6 +1,8 @@
-namespace playlistPlayer.Core;
+namespace playlistPlayer.Core.Interfaces;
 
-interface IDownloadService
+using playlistPlayer.Core.Models;
+
+public interface IDownloadService
 {
-    public Song DownloadSong(string id);
+    public Task<Song[]> DownloadSong(Func<string, string> selector, params string[] ids);
 }
