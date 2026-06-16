@@ -33,6 +33,11 @@ public class Github
 
         var path = Path.Combine(outputPath, asset.Name);
 
+        if (Path.Exists(outputPath))
+        {
+            Directory.CreateDirectory(outputPath);
+        }
+
         await using var file = File.Create(path);
 
         await stream.CopyToAsync(file);
