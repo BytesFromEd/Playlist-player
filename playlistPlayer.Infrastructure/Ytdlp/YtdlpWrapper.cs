@@ -6,6 +6,7 @@ using playlistPlayer.Infrastructure.GithubAsset;
 
 using ManuHub.Ytdlp.NET;
 using System.Runtime.InteropServices;
+using playlistPlayer.Infrastructure.Storage;
 
 public class YtdlpWrapper : IDownloadService
 {
@@ -16,37 +17,52 @@ public class YtdlpWrapper : IDownloadService
     public YtdlpWrapper()
     {
         string version = Github.GetLatestReleaseVersionAsync("yt-dlp", "yt-dlp").GetAwaiter().GetResult();
+        string filename;
 
-        //check if there's a new release and download it if there is
+        YtdlpDatabase.CreateTable();
 
-        string filename = Github.DownloadLatestReleaseAsset("yt-dlp", "yt-dlp", (asset) =>
-            {
-                if (OperatingSystem.IsWindows())
-                {
-                    return asset.Name.EndsWith(".exe");
-                }
-                else if (OperatingSystem.IsLinux())
-                {
-                    return asset.Name.EndsWith("_linux");
-                }
-                else if (OperatingSystem.IsMacOS())
-                {
-                    return asset.Name.EndsWith("_macos");
-                }
-                else
-                {
-                    throw new Exception($"OS: {RuntimeInformation.OSDescription} arch: {RuntimeInformation.OSArchitecture} isn't supported yet!");
-                }
-            }, "./tools")
-            .GetAwaiter()
-            .GetResult();
+        if (YtdlpDatabase.SetVersion(version))
+        {
 
+            filename = Github.DownloadLatestReleaseAsset("yt-dlp", "yt-dlp", (asset) =>
+                {
+                    if (OperatingSystem.IsWindows())
+                    {
+                        return asset.Name.EndsWith(".exe");
+                    }
+                    else if (OperatingSystem.IsLinux())
+                    {
+                        return asset.Name.EndsWith("_linux");
+                    }
+                    else if (OperatingSystem.IsMacOS())
+                    {
+                        return asset.Name.EndsWith("_macos");
+                    }
+                    else
+                    {
+                        throw new Exception($"OS: {RuntimeInformation.OSDescription} arch: {RuntimeInformation.OSArchitecture} isn't supported yet!");
+                    }
+                }, "./tools")
+                .GetAwaiter()
+                .GetResult();
+        }
+        else
+        {
+            filename = YtdlpDatabase.GetFilename();
+        }
+
+        const string outputPath = "./songs";
 
         service = new Ytdlp(filename)
             .WithBestAudioOnly()
             .WithEmbedThumbnail()
-            .WithOutputFolder("./songs")
+            .WithOutputFolder(outputPath)
             .WithOutputTemplate("%(id)s.%(ext)s");
+
+        if (Path.Exists(outputPath))
+        {
+            Directory.CreateDirectory(outputPath);
+        }
 
         service.ProgressDownload += (s, e) =>
         {
