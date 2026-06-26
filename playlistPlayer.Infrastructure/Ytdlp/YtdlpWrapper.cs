@@ -3,10 +3,11 @@
 using playlistPlayer.Core.Interfaces;
 using playlistPlayer.Core.Models;
 using playlistPlayer.Infrastructure.GithubAsset;
+using playlistPlayer.Infrastructure.Storage;
 
 using ManuHub.Ytdlp.NET;
 using System.Runtime.InteropServices;
-using playlistPlayer.Infrastructure.Storage;
+using System.Text.Json;
 
 public class YtdlpWrapper : IDownloadService
 {
@@ -16,6 +17,7 @@ public class YtdlpWrapper : IDownloadService
 
     public YtdlpWrapper()
     {
+        //add deno download
         string version = Github.GetLatestReleaseVersionAsync("yt-dlp", "yt-dlp").GetAwaiter().GetResult();
         string filename;
 
@@ -79,11 +81,11 @@ public class YtdlpWrapper : IDownloadService
     }
 
     //todo confirm it is the file path
-    public async Task<Song[]> DownloadSong(Func<string, string> selector, params string[] ids)
+    public async Task<Song[]> DownloadSong(params Song[] songs)
     {
         CancellationTokenSource ct = new();
 
-        var urls = ids.Select(selector);
+        var urls = songs.Select(x => x.GetId());
 
         var downloadedFiles = new List<string>();
 
@@ -99,11 +101,10 @@ public class YtdlpWrapper : IDownloadService
             return [];
         }
 
-        var songsMetadata = await GetSongMetadata(selector, ct.Token, ids);
-
-        if (ct.IsCancellationRequested)
-        {
-            return [];
+        return [.. songs.Select(x => {
+            x.SetFile(downloadedFiles.First(y => y.Contains(x.GetId())));
+            return x;
+        })];
         }
 
         List<Song> songs = [];

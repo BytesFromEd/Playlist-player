@@ -4,5 +4,5 @@ using playlistPlayer.Core.Models;
 
 public interface IDownloadService
 {
-    public Task<Song[]> DownloadSong(Func<string, string> selector, params string[] ids);
+    public Task<Song[]> DownloadSong(params Song[] songs);
 }
