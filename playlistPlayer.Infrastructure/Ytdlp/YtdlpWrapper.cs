@@ -9,7 +9,7 @@ using ManuHub.Ytdlp.NET;
 using System.Runtime.InteropServices;
 using System.Text.Json;
 
-public class YtdlpWrapper : IDownloadService
+public class YtdlpWrapper : IDownloadService, IPlaylistProvider
 {
     private Ytdlp service;
     public event EventHandler<YtdlpMessageEventArgs>? OnYtdlpMessages;
@@ -59,6 +59,7 @@ public class YtdlpWrapper : IDownloadService
             .WithBestAudioOnly()
             .WithEmbedThumbnail()
             .WithOutputFolder(outputPath)
+            .WithFlatPlaylist()
             .WithOutputTemplate("%(id)s.%(ext)s");
 
         if (Path.Exists(outputPath))
@@ -105,43 +106,27 @@ public class YtdlpWrapper : IDownloadService
             x.SetFile(downloadedFiles.First(y => y.Contains(x.GetId())));
             return x;
         })];
-        }
-
-        List<Song> songs = [];
-
-        foreach (var info in songsMetadata)
-        {
-            if (info == null) continue;
-
-            var file = downloadedFiles.FirstOrDefault(x => x.Contains(info.Id!, StringComparison.CurrentCultureIgnoreCase));
-
-            if (file == null) continue;
-
-            songs.Add(new Song(
-                info.Id ?? "ID_ERROR",
-                info.Title ?? "TITLE_ERROR",
-                new Author(info.Uploader ?? "UPLOADER_ERROR"),
-                file,
-                new TimeSpan((long)(info.Duration ?? 0)),
-                DateTime.Now
-            ));
-        }
-
-        return [.. songs];
     }
 
-    private async Task<Metadata[]> GetSongMetadata(Func<string, string> selector, CancellationToken ct, params string[] ids)
+    //yt-dlp --remote-components ejs:github --dump-single-json --skip-download https://youtube.com/playlist?list=PLebv-XoARUkw6PruMaKKOFWhvEjB96BSp
+    public async Task<Playlist?> GetPlaylist(string url)
     {
-        List<Metadata> songsMetadata = [];
+        if (url.Contains("music.")) url = url.Replace("music.", "");
 
-        foreach (var url in ids.Select(selector))
+        var result = await service.ExecuteRawAsync("--dump-single-json --skip-download " + url);
+
+        System.Console.WriteLine(result.FullOutput);
+
+        if (!result.IsSuccess || result.FullOutput == null)
         {
-            var metadata = await service.GetMetadataAsync(url, ct);
-
-            if (metadata != null)
-                songsMetadata.Add(metadata);
+            return null;
         }
 
-        return [.. songsMetadata];
+        Playlist? playlist = JsonSerializer.Deserialize<Playlist>(result.FullOutput, new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true
+        });
+
+        return playlist;
     }
 }
