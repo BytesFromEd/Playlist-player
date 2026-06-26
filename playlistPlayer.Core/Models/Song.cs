@@ -5,7 +5,7 @@ public class Song(string id, string title, Author artist, string file, TimeSpan 
     private readonly string id = id;
     private readonly string title = title;
     private readonly Author artist = artist;
-    private readonly string file = file;
+    private string file = file;
     private readonly TimeSpan duration = duration;
     private readonly DateTime lastPlayed = lastPlayed;
 
@@ -22,6 +22,11 @@ public class Song(string id, string title, Author artist, string file, TimeSpan 
     public string GetFile()
     {
         return file;
+    }
+
+    public void SetFile(string file)
+    {
+        this.file = file;
     }
 
     public Author GetArtist()
