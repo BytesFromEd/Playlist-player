@@ -1,6 +1,6 @@
 <Solution>
-  <Project Path="playlistPlayer.Core/playlistPlayer.Core.csproj" />
-  <Project Path="playlistPlayer.Infrastructure/playlistPlayer.Infrastructure.csproj" />
-  <Project Path="playlistPlayer.Tests/playlistPlayer.Tests.csproj" />
-  <Project Path="playlistPlayer.UI/playlistPlayer.UI.csproj" />
+  <Project Path="Cli/Cli.csproj" />
+  <Project Path="Core/Core.csproj" />
+  <Project Path="Infrastructure/Infrastructure.csproj" />
+  <Project Path="UI/UI.csproj" />
 </Solution>

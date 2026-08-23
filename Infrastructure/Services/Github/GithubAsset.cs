@@ -1,4 +1,4 @@
-namespace playlistPlayer.Infrastructure.GithubAsset;
+namespace Infrastructure.Services.Github;
 
 public class GithubAsset
 {
