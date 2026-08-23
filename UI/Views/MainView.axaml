@@ -1,0 +1,131 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="clr-namespace:UI.ViewModels"
+        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="400"
+        x:Class="UI.Views.MainView"
+        x:DataType="vm:MainViewModel"
+        Title="UI">
+
+    <Design.DataContext>
+        <vm:MainViewModel></vm:MainViewModel>
+    </Design.DataContext>
+
+    <Grid RowDefinitions="*, Auto">
+        <Grid ColumnDefinitions="20*, 80*">
+
+            <Grid RowDefinitions="Auto, *, Auto" RowSpacing="10">
+
+
+                <Popup Grid.Row="0" x:Name="PlaylistPopup"
+                       PlacementTarget="{Binding #PopupArea}"
+                       Placement="Center"
+                       VerticalAlignment="Stretch"
+                       HorizontalAlignment="Stretch"
+                       IsLightDismissEnabled="True">
+                    <Border Padding="20">
+                        <StackPanel Spacing="10">
+                            <TextBox PlaceholderText="Url to add playlist" Text="{Binding Url}" />
+                            <Button HorizontalAlignment="Center" Command="{Binding AddPlaylistCommand}">
+                                <StackPanel Orientation="Horizontal">
+                                    <PathIcon Data="{StaticResource SaveIcon}"></PathIcon>
+                                    <Label>Save</Label>
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+                    </Border>
+                </Popup>
+
+                <Button Grid.Row="0" Click="OnTogglePopup" HorizontalAlignment="Stretch"
+                        HorizontalContentAlignment="Center">
+                    <StackPanel Orientation="Horizontal">
+                        <PathIcon Data="{StaticResource PlusPlaylistIcon}"></PathIcon>
+                        <Label>Add Playlist</Label>
+                    </StackPanel>
+                </Button>
+
+                <ScrollViewer Grid.Row="1">
+                    <StackPanel Spacing="5" HorizontalAlignment="Stretch">
+                        <ItemsControl ItemsSource="{Binding Playlists}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <!-- ReSharper disable once Xaml.PossibleNullReferenceException -->
+                                    <Button
+                                        Command="{Binding $parent[ItemsControl].((vm:MainViewModel)DataContext).GoToCommand}"
+                                        CommandParameter="{Binding}"
+                                        HorizontalAlignment="Stretch"
+                                        Padding="0"
+                                        Height="50">
+                                        <Grid ColumnDefinitions="Auto, *">
+                                            <Image Source="{Binding Image}" />
+                                            <StackPanel Grid.Column="1">
+                                                <Label Content="{Binding Name}" />
+                                                <Label Content="{Binding Owner}" />
+                                            </StackPanel>
+                                        </Grid>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </ScrollViewer>
+
+
+                <Button Grid.Row="2" HorizontalAlignment="Right" CommandParameter="settings"
+                        Command="{Binding GoToCommand}">
+                    <PathIcon Data="{StaticResource CogIcon}"></PathIcon>
+                </Button>
+            </Grid>
+
+            <ContentControl Grid.Column="1" Content="{Binding CurrentViewModel}" x:Name="PopupArea" />
+        </Grid>
+
+        <Grid Grid.Row="1">
+            <Grid RowDefinitions="Auto, Auto, *">
+                <Slider x:Name="PositionSlider"
+                        Value="{Binding Progress}"
+                        Minimum="0"
+                        Maximum="{Binding Lenght}" />
+
+                <Grid Grid.Row="1" ColumnDefinitions="30*, 40*, 30*">
+                    <Grid RowDefinitions="Auto, Auto" Grid.Column="0" VerticalAlignment="Center">
+                        <Label Content="{Binding CurrentSong?.Title}" />
+                        <Label Grid.Row="1" Content="{Binding CurrentSong?.Artist}" />
+                    </Grid>
+
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0 20">
+                        <Button
+                            Command="{Binding PrevCommand}">
+                            <PathIcon Data="{StaticResource SkipPrevIcon}"></PathIcon>
+                        </Button>
+                        <Button Command="{Binding PlayCommand}">
+                            <PathIcon Data="{Binding PlayIcon}"></PathIcon>
+                        </Button>
+                        <Button
+                            Command="{Binding NextCommand}">
+                            <PathIcon Data="{StaticResource SkipNextIcon}"></PathIcon>
+                        </Button>
+                    </StackPanel>
+
+                    <Grid ColumnDefinitions="Auto, *" Grid.Column="2" ColumnSpacing="20">
+                        <Button
+                            Command="{Binding MuteCommand}">
+                            <PathIcon Data="{Binding VolumeIcon}" />
+                        </Button>
+                        <Slider Grid.Column="1"
+                                Minimum="0"
+                                Maximum="1"
+                                SmallChange="0.01"
+                                LargeChange="0.1"
+                                Value="{Binding Volume}"
+                                VerticalAlignment="Center" />
+                    </Grid>
+                </Grid>
+
+
+                <Label Grid.Row="1" Content="{Binding Message}" HorizontalAlignment="Stretch" />
+            </Grid>
+        </Grid>
+    </Grid>
+</Window>
