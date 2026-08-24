@@ -10,12 +10,14 @@ internal abstract class Database
 
     protected static SQLiteConnection DbConnection()
     {
-        if (!File.Exists(OutputPath))
+        var outputPath = Path.Combine(AppSettings.GetInstance().AppFolder, "database.db");
+
+        if (!File.Exists(outputPath))
         {
-            SQLiteConnection.CreateFile(OutputPath);
+            SQLiteConnection.CreateFile(outputPath);
         }
 
-        var conn = new SQLiteConnection($"Data Source={Path.GetFullPath(OutputPath)}; Version=3;");
+        var conn = new SQLiteConnection($"Data Source={Path.GetFullPath(outputPath)}; Version=3;");
         return conn;
     }
 

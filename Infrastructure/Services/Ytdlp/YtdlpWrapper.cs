@@ -22,8 +22,9 @@ internal class YtdlpWrapper : IDownloadService, IPlaylistProvider
 
     private readonly JsonSerializerOptions options;
 
-    private const string SongsOutFolder = "./songs";
-    private const string ThumbnailOutFolder = "./thumbnails";
+    private readonly string songsOutFolder = Path.Combine(AppSettings.GetInstance().AppFolder, "./songs");
+    private readonly string thumbnailOutFolder = Path.Combine(AppSettings.GetInstance().AppFolder, "./thumbnails");
+    private readonly string toolsOutFolder = Path.Combine(AppSettings.GetInstance().AppFolder, "./tools");
 
     private readonly Regex removeVideo;
 
@@ -70,7 +71,7 @@ internal class YtdlpWrapper : IDownloadService, IPlaylistProvider
 
                         throw new Exception(
                             $"OS: {RuntimeInformation.OSDescription} arch: {RuntimeInformation.OSArchitecture} isn't supported yet!");
-                    }, "./tools", client)
+                    }, toolsOutFolder, client)
                     .GetAwaiter()
                     .GetResult();
             }
@@ -87,7 +88,7 @@ internal class YtdlpWrapper : IDownloadService, IPlaylistProvider
             filename = YtdlpDatabase.GetFilename();
         }
 
-        var outputPath = Path.GetFullPath(SongsOutFolder);
+        var outputPath = Path.GetFullPath(songsOutFolder);
 
         ytdlp = new ManuHub.Ytdlp.NET.Ytdlp(filename)
                 .WithExtractAudio(AudioFormat.Mp3)
@@ -95,7 +96,7 @@ internal class YtdlpWrapper : IDownloadService, IPlaylistProvider
                 .WithThumbnails()
                 //.WithJsRuntime(object, "") //todo
                 .WithOutputTemplate("%(id)s.%(ext)s")
-                .WithCookiesFile("cookies.txt")
+                .WithCookiesFile(Path.Combine(AppSettings.GetInstance().AppFolder, "cookies.txt"))
                 .AddOption("--extractor-args", "youtube:player_client=default,web_embedded")
             ;
 
@@ -124,7 +125,7 @@ internal class YtdlpWrapper : IDownloadService, IPlaylistProvider
 
     public async Task DownloadSongs(string playlist, CancellationToken ct, params List<Song> songs)
     {
-        var outputPath = Path.GetFullPath(SongsOutFolder);
+        var outputPath = Path.GetFullPath(songsOutFolder);
 
         var filesDownloaded = Directory.Exists(outputPath) ? Directory.GetFiles(outputPath, "*.mp3") : [];
 
@@ -225,9 +226,9 @@ internal class YtdlpWrapper : IDownloadService, IPlaylistProvider
 
         if (thumbnailUrl != null)
         {
-            if (!Directory.Exists(ThumbnailOutFolder))
+            if (!Directory.Exists(thumbnailOutFolder))
             {
-                Directory.CreateDirectory(ThumbnailOutFolder);
+                Directory.CreateDirectory(thumbnailOutFolder);
             }
 
             await using var s = await client.GetStreamAsync(thumbnailUrl, ct);
@@ -259,7 +260,7 @@ internal class YtdlpWrapper : IDownloadService, IPlaylistProvider
                 );
             }
 
-            await image.SaveAsJpegAsync(Path.Combine(ThumbnailOutFolder, id + ".jpg"), ct);
+            await image.SaveAsJpegAsync(Path.Combine(thumbnailOutFolder, id + ".jpg"), ct);
             if (ct.IsCancellationRequested)
             {
                 return null;
@@ -270,13 +271,14 @@ internal class YtdlpWrapper : IDownloadService, IPlaylistProvider
             rawPlaylist?.Uploader ?? "ERROR",
             id,
             Provider.Youtube,
-            thumbnailUrl != null ? Path.Combine(ThumbnailOutFolder, id + ".jpg") : null,
+            thumbnailUrl != null ? Path.Combine(thumbnailOutFolder, id + ".jpg") : null,
             rawPlaylist?
                 .Entries?
                 .Select(x => new Song(x.Id ?? "ERROR ID",
                     x.Title ?? "ERROR TITLE",
                     x.Uploader ?? "ERROR UPLOADER",
                     x.Id != null ? Path.Combine(SongsOutFolder, x.Id) : "ERROR ID",
+                    x.Id != null ? (x.Id + ".mp3") : "ERROR ID",
                     x.Duration ?? -1,
                     DateTime.Now,
                     Provider.Youtube))

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Avalonia;
@@ -7,6 +8,7 @@ using Avalonia.Media;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Infrastructure;
 using Infrastructure.MediaPlayer;
 using Infrastructure.Services;
 using UI.ViewModels.Models;
@@ -20,7 +22,7 @@ public partial class MainViewModel : ViewModelBase
     [ObservableProperty] public partial string Url { get; set; } = string.Empty;
     [ObservableProperty] public partial string Message { get; set; } = string.Empty;
 
-    [ObservableProperty] public partial float Volume { get; set; } = 1;
+    [ObservableProperty] public partial float Volume { get; set; } = AppSettings.GetInstance().Volume;
     [ObservableProperty] public partial long Progress { get; set; } = 0;
     [ObservableProperty] public partial long Lenght { get; set; } = 0;
 
@@ -105,7 +107,7 @@ public partial class MainViewModel : ViewModelBase
             CurrentSong = change.SongBinding;
 
             positionTimer.Stop();
-            player.SetSong(change.SongBinding.Song);
+            player.SetSong(Path.Combine(AppSettings.GetInstance().AppFolder, "songs", change.SongBinding.Song.GetFile()));
             Lenght = player.Lenght;
             IsSeeking = false;
             Progress = 0;
@@ -250,5 +252,11 @@ public partial class MainViewModel : ViewModelBase
                 })
             ];
         }
+    }
+
+
+    public void Closing()
+    {
+        AppSettings.GetInstance().Volume = Volume;
     }
 }
