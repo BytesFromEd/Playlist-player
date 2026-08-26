@@ -7,7 +7,7 @@ internal sealed class LinuxAudioOutput : IAudioOutput
 {
     private readonly AlsaOut player;
     private float? volume;
-    public EventHandler<StoppedEventArgs>? OnStopped { get; set; }
+    public event EventHandler<StoppedEventArgs>? OnStopped;
     public LinuxAudioOutput()
     {
         if (!OperatingSystem.IsLinux())

@@ -47,7 +47,7 @@
 
                 <ScrollViewer Grid.Row="1">
                     <StackPanel Spacing="5" HorizontalAlignment="Stretch">
-                        <ItemsControl ItemsSource="{Binding Playlists}">
+                        <ItemsControl ItemsSource="{Binding State.Playlists}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
                                     <!-- ReSharper disable once Xaml.PossibleNullReferenceException -->
@@ -90,8 +90,8 @@
 
                 <Grid Grid.Row="1" ColumnDefinitions="30*, 40*, 30*">
                     <Grid RowDefinitions="Auto, Auto" Grid.Column="0" VerticalAlignment="Center">
-                        <Label Content="{Binding CurrentSong?.Title}" />
-                        <Label Grid.Row="1" Content="{Binding CurrentSong?.Artist}" />
+                        <Label Content="{Binding State.CurrentSong?.Title}" />
+                        <Label Grid.Row="1" Content="{Binding State.CurrentSong?.Artist}" />
                     </Grid>
 
                     <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0 20">

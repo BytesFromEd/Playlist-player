@@ -6,8 +6,6 @@ namespace Infrastructure.Services.Storage;
 
 internal abstract class Database
 {
-    private const string OutputPath = "./database.db";
-
     protected static SQLiteConnection DbConnection()
     {
         var outputPath = Path.Combine(AppSettings.GetInstance().AppFolder, "database.db");
@@ -23,30 +21,23 @@ internal abstract class Database
 
     public static void CreateInitialTables()
     {
-        try
-        {
-            using var conn = DbConnection();
-            conn.Open();
-            using var cmd =
-                new SQLiteCommand(
-                    "CREATE TABLE IF NOT EXISTS Playlists (id TEXT PRIMARY KEY, name TEXT, owner TEXT, thumbnail TEXT, provider TEXT);",
-                    conn);
-            cmd.ExecuteNonQuery();
-            using var cmd2 =
-                new SQLiteCommand(
-                    "CREATE TABLE IF NOT EXISTS Songs (id TEXT PRIMARY KEY, title TEXT, artist TEXT, file TEXT, duration INT, lastPlayed INTEGER, provider TEXT);",
-                    conn);
-            cmd2.ExecuteNonQuery();
-            using var cmd3 =
-                new SQLiteCommand(
-                    "CREATE TABLE IF NOT EXISTS Song_Playlist (song_id TEXT, playlist_id TEXT, PRIMARY KEY(song_id, playlist_id));",
-                    conn);
-            cmd3.ExecuteNonQuery();
-        }
-        catch
-        {
-            throw;
-        }
+        using var conn = DbConnection();
+        conn.Open();
+        using var cmd =
+            new SQLiteCommand(
+                "CREATE TABLE IF NOT EXISTS Playlists (id TEXT PRIMARY KEY, name TEXT, owner TEXT, thumbnail TEXT, provider TEXT);",
+                conn);
+        cmd.ExecuteNonQuery();
+        using var cmd2 =
+            new SQLiteCommand(
+                "CREATE TABLE IF NOT EXISTS Songs (id TEXT PRIMARY KEY, title TEXT, artist TEXT, file TEXT, cover TEXT, duration INT, lastPlayed INTEGER, provider TEXT);",
+                conn);
+        cmd2.ExecuteNonQuery();
+        using var cmd3 =
+            new SQLiteCommand(
+                "CREATE TABLE IF NOT EXISTS Song_Playlist (song_id TEXT, playlist_id TEXT, PRIMARY KEY(song_id, playlist_id));",
+                conn);
+        cmd3.ExecuteNonQuery();
     }
 
     public static Song GetSong(string id)
@@ -55,7 +46,7 @@ internal abstract class Database
         conn.Open();
         using var cmd =
             new SQLiteCommand(
-                "SELECT id, title, artist, file, duration, lastPlayed, provider FROM Songs WHERE id = @id",
+                "SELECT id, title, artist, file, cover, duration, lastPlayed, provider FROM Songs WHERE id = @id",
                 conn);
         cmd.Parameters.AddWithValue("@id", id);
         using var reader = cmd.ExecuteReader();
@@ -69,7 +60,8 @@ internal abstract class Database
 
 
         var song = new Song(id, (string)reader["title"], (string)reader["artist"],
-            (string)reader["file"], (int)reader["duration"], (DateTime)reader["lastPlayed"], provider);
+            (string)reader["file"], (string)reader["cover"], (int)reader["duration"], (DateTime)reader["lastPlayed"],
+            provider);
 
         return song;
     }
@@ -82,7 +74,7 @@ internal abstract class Database
         conn.Open();
         using var cmd =
             new SQLiteCommand(
-                "SELECT id, title, artist, file, duration, lastPlayed, provider FROM Songs s WHERE EXISTS( SELECT 1 FROM Song_Playlist WHERE playlist_id = @id AND song_id = s.id) ",
+                "SELECT id, title, artist, file, cover, duration, lastPlayed, provider FROM Songs s WHERE EXISTS( SELECT 1 FROM Song_Playlist WHERE playlist_id = @id AND song_id = s.id) ",
                 conn);
         cmd.Parameters.AddWithValue("@id", id);
         using var reader = cmd.ExecuteReader();
@@ -95,8 +87,9 @@ internal abstract class Database
                 _ => Provider.External,
             };
 
-            songs.Add(new Song((string)reader["id"], (string)reader["title"], (string)reader["artist"],
-                (string)reader["file"], (int)reader["duration"], new DateTime((long)reader["lastPlayed"]), provider));
+            songs.Add(new Song(id, (string)reader["title"], (string)reader["artist"],
+                (string)reader["file"], (string)reader["cover"], (int)reader["duration"],
+                new DateTime((long)reader["lastPlayed"]), provider));
         }
 
         return songs;

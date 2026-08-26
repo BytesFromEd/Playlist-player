@@ -5,10 +5,8 @@ namespace Infrastructure.MediaPlayer;
 internal sealed class WindowsAudioOutput : IAudioOutput
 {
     private readonly WasapiPlayer player;
-
-    public EventHandler<StoppedEventArgs>? OnStopped { get; set; }
+    public event EventHandler<StoppedEventArgs>? OnStopped;
     
-
     public WindowsAudioOutput()
     {
         if (!OperatingSystem.IsWindows())
@@ -17,8 +15,17 @@ internal sealed class WindowsAudioOutput : IAudioOutput
         }
 
         player = new WasapiPlayerBuilder().Build();
+        
+        OnStopped += (sender, args) =>
+        {
+            Console.WriteLine("EVENT RECEIVED");
+        };
 
-        player.PlaybackStopped += (sender, args) => { OnStopped?.Invoke(sender, args); };
+        player.PlaybackStopped += (sender, args) =>
+        {
+            Console.WriteLine("STOPPED");
+            OnStopped?.Invoke(sender, args);
+        };
     }
 #pragma warning disable CA1416
 

@@ -1,7 +1,6 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text.Json;
-using System.Text.Json.Nodes;
 
 namespace Infrastructure;
 
@@ -12,7 +11,7 @@ public class AppSettings : IDisposable
     
     private static AppSettings? instance;
 
-    private AppSettings()
+    public AppSettings()
     {
         AppFolder = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
@@ -37,10 +36,7 @@ public class AppSettings : IDisposable
 
     public static AppSettings GetInstance()
     {
-        if (instance == null)
-        {
-            instance = new AppSettings();
-        }
+        instance ??= new AppSettings();
         return instance;
     }
 

@@ -6,31 +6,28 @@ namespace Infrastructure.Services;
 
 public class Services
 {
-    private readonly YtdlpWrapper ytdlpWrapper;
-
-    private static Services? _instance;
+    private YtdlpWrapper? ytdlpWrapper;
 
     public event EventHandler<ServiceEventArgs>? OnServiceMessage;
     public event EventHandler<EventArgs>? OnServiceDownloadProgress;
 
-    private Services()
+    public Services()
     {
-        var client = new HttpClient();
-        ytdlpWrapper = new YtdlpWrapper(client);
+        ytdlpWrapper?.OnYtdlpMessages += (sender, msg) => OnServiceMessage?.Invoke(sender, msg);
 
-        ytdlpWrapper.OnYtdlpMessages += (sender, msg) => OnServiceMessage?.Invoke(sender, msg);
-
-        ytdlpWrapper.OnYtdlpDownloadProgress += (sender, args) => OnServiceDownloadProgress?.Invoke(sender, args);
+        ytdlpWrapper?.OnYtdlpDownloadProgress += (sender, args) => OnServiceDownloadProgress?.Invoke(sender, args);
     }
 
-    public static Services GetInstance()
+    public Task Initialize(CancellationToken ct)
     {
-        _instance ??= new Services();
-
-        return _instance;
+        return Task.Run(() =>
+        {
+            var client = new HttpClient();
+            ytdlpWrapper = new YtdlpWrapper(client);
+        }, ct);
     }
 
-    public static void CreateTable()
+    public void CreateTable()
     {
         Database.CreateInitialTables();
         YtdlpDatabase.CreateTable();
@@ -38,6 +35,11 @@ public class Services
 
     public async Task<Playlist?> AddPlayist(string url, CancellationToken ct)
     {
+        if (ytdlpWrapper == null)
+        {
+            return null;
+        }
+        
         var playlist = await ytdlpWrapper.GetPlaylist(url, ct);
         if (ct.IsCancellationRequested)
         {
@@ -53,6 +55,11 @@ public class Services
 
     public async Task<Playlist?> RefreshPlaylist(Playlist playlist, CancellationToken ct)
     {
+        if (ytdlpWrapper == null)
+        {
+            return null;
+        }
+        
         var temp = await ytdlpWrapper.RefreshPlaylist(playlist, ct);
         if (ct.IsCancellationRequested)
         {

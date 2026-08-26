@@ -1,5 +1,4 @@
 ﻿using Core.Interfaces;
-using Core.Models;
 using NAudio.SoundFile;
 using NAudio.Wave;
 
@@ -11,14 +10,15 @@ public class MediaPlayer : IAudioPlayer, IDisposable
 
     private IAudioOutput player = AudioOutputFactory.Create();
 
+    public MediaPlayer()
+    {
+        player.OnStopped += (sender, args) => { OnStopped?.Invoke(sender, args); };
+    }
+
     public long Lenght => currentSong?.Length ?? 0;
 
-    public EventHandler<StoppedEventArgs>? OnStopped
-    {
-        get => player.OnStopped;
-        set => player.OnStopped = value;
-    }
-    
+    public EventHandler<StoppedEventArgs>? OnStopped { get; set; }
+
     public bool IsPlaying => player.IsPlaying;
 
     public long Position
@@ -46,13 +46,13 @@ public class MediaPlayer : IAudioPlayer, IDisposable
         set => player.Muted = value;
     }
 
-    public void SetSong(Song song)
+    public void SetSong(string path)
     {
         if (player.IsPlaying)
             player.Stop();
 
         currentSong?.Dispose();
-        currentSong = new SoundFileReader(song.GetFile() + ".mp3");
+        currentSong = new SoundFileReader(path);
 
         var oldVolume = player.Volume;
         var muted = player.Muted;

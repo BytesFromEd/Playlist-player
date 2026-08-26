@@ -1,123 +1,57 @@
 ﻿using System;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Infrastructure.Services;
+using UI.Services;
 using UI.ViewModels.Models;
 
 namespace UI.ViewModels;
 
 public partial class PlaylistViewModel : ViewModelBase
 {
-    [ObservableProperty] public partial PlaylistBinding? Playlist { get; private set; }
-
-    [ObservableProperty] public partial ObservableCollection<SongBinding>? Songs { get; set; }
-
-    private readonly Services services = Services.GetInstance();
-
-    public static event EventHandler<MessageArgs>? OnMessage;
+    public event EventHandler<MessageArgs>? OnMessage;
 
     [ObservableProperty] public partial bool IsRefreshing { get; private set; } = false;
 
-    public PlaylistViewModel(PlaylistBinding playlist)
+    [ObservableProperty] public partial State State { get; set; }
+
+    public PlaylistViewModel(State state)
     {
-        Tasks =
-        [
-            .. Tasks.Where(x => x is { IsCanceled: false, IsCompleted: false }),
-            Task.Run(() =>
-            {
-                var fullPlaylist = services.GetPlaylist(playlist.Id);
-                var playlistBinding = ToBinding(fullPlaylist);
-                var songs = playlistBinding.QueueManager.GetSongs().Select(ToBinding).ToList();
-                Playlist = playlistBinding;
-                Songs = new ObservableCollection<SongBinding>(songs);
-
-
-                OnNextSong += (_, args) =>
-                {
-                    switch (args)
-                    {
-                        case ChangeSongArgs { ChangeIndex: true } change:
-                            Tasks =
-                            [
-                                .. Tasks.Where(x => x is { IsCanceled: false, IsCompleted: false }),
-                                Task.Run(() => { Playlist?.QueueManager.SetIndex(change.SongBinding.Song); })
-                            ];
-                            break;
-                        case NextSongArgs:
-                        {
-                            var index = Playlist?.QueueManager.Next();
-                            if (index == null) return;
-                            CurrentSong = Songs?[index.Value];
-                            OnNextSong?.Invoke(this, new ChangeSongArgs(CurrentSong!, false));
-                            break;
-                        }
-                        case PrevSongArgs:
-                        {
-                            var index = Playlist?.QueueManager.Previous();
-                            if (index == null) return;
-                            CurrentSong = Songs?[index.Value];
-                            OnNextSong?.Invoke(this, new ChangeSongArgs(CurrentSong!, false));
-                            break;
-                        }
-                    }
-                };
-
-                if (Songs.Count > 0)
-                    SongSetter(Songs.First());
-            })
-        ];
+        State = state;
     }
 
-    public PlaylistViewModel()
-    {
-        var fullPlaylist = services.GetPlaylist(services.GetPlaylists()[0].GetId());
-        var playlistBinding = ToBinding(fullPlaylist);
-        var songs = playlistBinding.QueueManager.GetSongs().Select(ToBinding).ToList();
-        Playlist = playlistBinding;
-        Songs = new ObservableCollection<SongBinding>(songs);
-        CurrentSong = Songs.First();
-        CurrentSong.IsSelected = true;
-    }
 
     [RelayCommand]
-    private void SetSong(SongBinding song) => SongSetter(song, true);
-
-    private void SongSetter(SongBinding song, bool changeIndex = false)
+    private void SetSong(SongBinding song)
     {
-        if (song == CurrentSong) return;
+        if (song == State.CurrentSong) return;
 
-        CurrentSong?.IsSelected = false;
-        CurrentSong = song;
-        CurrentSong?.IsSelected = true;
-
-        Tasks =
+        State.CurrentSong = song;
+        State.Tasks =
         [
-            .. Tasks.Where(x => x is { IsCanceled: false, IsCompleted: false }),
-            Task.Run(() => { Playlist?.QueueManager.SetIndex(song.Song); })
+            .. State.Tasks.Where(x => x is { IsCanceled: false, IsCompleted: false }),
+            Task.Run(() => { State.CurrentPlaylist?.QueueManager.SetIndex(song.Song); })
         ];
-
-        OnNextSong?.Invoke(this, new ChangeSongArgs(song, changeIndex));
     }
 
     [RelayCommand]
     private void Refresh()
     {
-        if (Playlist == null || IsRefreshing) return;
+        if (State.CurrentPlaylist == null || IsRefreshing) return;
         IsRefreshing = true;
-
-        Tasks =
+        State.Tasks =
         [
-            .. Tasks.Where(x => x is { IsCanceled: false, IsCompleted: false }),
+            .. State.Tasks.Where(x => x is { IsCanceled: false, IsCompleted: false }),
             Task.Run(async () =>
             {
-                var temp = await MainViewModel.Services.RefreshPlaylist(Playlist.Playlist, Cts.Token);
+                var temp = await State.Services.RefreshPlaylist(State.CurrentPlaylist.Playlist, State.Cts.Token);
 
-                if (temp != Playlist.Playlist && temp != null)
+                if (temp != State.CurrentPlaylist.Playlist && temp != null)
                 {
-                    Playlist = ToBinding(temp);
+                    State.CurrentPlaylist = State.ToBinding(temp);
                 }
             }).ContinueWith(_ =>
             {
@@ -130,17 +64,19 @@ public partial class PlaylistViewModel : ViewModelBase
     [RelayCommand]
     private void Shuffle()
     {
-        if (Playlist == null) return;
-
-        Tasks =
+        if (State.CurrentPlaylist == null) return;
+        State.Tasks =
         [
-            .. Tasks.Where(x => x is { IsCanceled: false, IsCompleted: false }),
+            .. State.Tasks.Where(x => x is { IsCanceled: false, IsCompleted: false }),
             Task.Run(() =>
             {
-                Playlist.QueueManager.Shuffle();
-                Songs = new ObservableCollection<SongBinding>([.. Playlist.QueueManager.GetSongs().Select(ToBinding)]);
-                CurrentSong = Songs.First();
-                CurrentSong.IsSelected = true;
+                State.shouldChangeFile = false;
+                State.CurrentPlaylist.QueueManager.Shuffle();
+                State.Songs = new ObservableCollection<SongBinding>([
+                    .. State.CurrentPlaylist.QueueManager.GetSongs().Select(State.ToBinding)
+                ]);
+                State.CurrentSong = State.Songs.First();
+                State.shouldChangeFile = true;
             })
         ];
     }

@@ -4,7 +4,7 @@ namespace Infrastructure.MediaPlayer;
 
 internal interface IAudioOutput : IDisposable
 {
-    EventHandler<StoppedEventArgs>? OnStopped { get; set; }
+    event EventHandler<StoppedEventArgs>? OnStopped;
     void Init(IWaveProvider source);
     void Play();
     void Pause();

@@ -10,7 +10,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Infrastructure;
 using Infrastructure.MediaPlayer;
-using Infrastructure.Services;
+using UI.Services;
 using UI.ViewModels.Models;
 
 
@@ -21,16 +21,15 @@ public partial class MainViewModel : ViewModelBase
     [ObservableProperty] public partial ViewModelBase? CurrentViewModel { get; set; }
     [ObservableProperty] public partial string Url { get; set; } = string.Empty;
     [ObservableProperty] public partial string Message { get; set; } = string.Empty;
-
-    [ObservableProperty] public partial float Volume { get; set; } = AppSettings.GetInstance().Volume;
+    [ObservableProperty] public partial float Volume { get; set; }
     [ObservableProperty] public partial long Progress { get; set; } = 0;
     [ObservableProperty] public partial long Lenght { get; set; } = 0;
 
     [ObservableProperty] public partial Geometry? VolumeIcon { get; set; }
     [ObservableProperty] public partial Geometry? PlayIcon { get; set; }
 
-    private readonly SettingsViewModel settingsViewModel = new();
-    public static readonly Services Services = Services.GetInstance();
+    private readonly SettingsViewModel settingsViewModel;
+    private readonly PlaylistViewModel playlistViewModel;
 
     public bool IsSeeking
     {
@@ -54,60 +53,64 @@ public partial class MainViewModel : ViewModelBase
 
     public event EventHandler<long>? PositionChanged;
 
-    public MainViewModel()
+    [ObservableProperty] public partial State State { get; set; }
+
+    public MainViewModel(State state, PlaylistViewModel playlistViewModel, SettingsViewModel settingsViewModel)
     {
-        Tasks =
-        [
-            .. Tasks.Where(x => x is { IsCanceled: false, IsCompleted: false }),
-            Task.Run(() =>
-            {
-                Services.CreateTable();
+        Volume = state.AppSettings.Volume;
+        State = state;
 
-                var playlists = Services.GetPlaylists().Select(ToBinding).ToList();
+        this.playlistViewModel = playlistViewModel;
+        this.settingsViewModel = settingsViewModel;
 
-                CurrentViewModel = playlists.Count != 0
-                    ? new PlaylistViewModel(playlists.First())
-                    : settingsViewModel;
+        state.Services.CreateTable();
 
-                Playlists = new ObservableCollection<PlaylistBinding>([.. playlists]);
-            })
-        ];
-/*
-        PlaylistViewModel.OnMessage += (_, args) => { Message = args.Message; };
-
-        Services.OnServiceMessage += (_, args) => { Message = args.Message; };
-*/
-        player = new MediaPlayer();
-
-        player.OnStopped += (_, args) =>
+        var playlists = state.Services.GetPlaylists().Select(state.ToBinding).ToList();
+        if (playlists.Count > 0)
         {
-            if (args.Exception != null)
-                Message = args.Exception.Message;
+            State.CurrentPlaylist = playlists.First();
+            CurrentViewModel = playlistViewModel;
+        }
+        else
+        {
+            CurrentViewModel = settingsViewModel;
+        }
 
-            Next();
-        };
+        state.Playlists = new ObservableCollection<PlaylistBinding>([.. playlists]);
+
+
+        player = new MediaPlayer();
 
         positionTimer = new DispatcherTimer
         {
             Interval = TimeSpan.FromMilliseconds(250)
         };
+
         positionTimer.Tick += (_, _) =>
         {
-            if (player is { IsPlaying: true })
+            if (Progress == Lenght)
+            {
+                Next();
+            }
+            else if (player is { IsPlaying: true })
                 PositionChanged?.Invoke(this, player.Position);
         };
+
         PositionChanged += (_, args) => { Progress = args; };
 
-        OnNextSong += (_, args) =>
+        state.OnSongChanged += (_, _) =>
         {
-            if (args is not ChangeSongArgs change) return;
-
             var lastStatePlay = player.IsPlaying;
 
-            CurrentSong = change.SongBinding;
-
             positionTimer.Stop();
-            player.SetSong(Path.Combine(AppSettings.GetInstance().AppFolder, "songs", change.SongBinding.Song.GetFile()));
+
+            if (State.CurrentSong == null)
+                return;
+
+            if (!State.shouldChangeFile)
+                return;
+
+            player.SetSong(Path.Combine(State.AppSettings.AppFolder, "songs", State.CurrentSong.Song.GetFile()));
             Lenght = player.Lenght;
             IsSeeking = false;
             Progress = 0;
@@ -121,6 +124,10 @@ public partial class MainViewModel : ViewModelBase
         OnVolumeChanged(Volume);
 
         PlayIcon = Application.Current?.Resources["PlayIcon"] as Geometry;
+
+        playlistViewModel.OnMessage += (_, args) => { Message = args.Message; };
+        state.Services.OnServiceMessage += (_, args) => { Message = args.Message; };
+        //player.OnStopped += (_, args) => { Console.WriteLine("ON MAIN"); }; //to fix
     }
 
 
@@ -161,30 +168,41 @@ public partial class MainViewModel : ViewModelBase
     {
         player?.PlayStop();
 
-        PlayIcon = player?.IsPlaying ?? true
-            ? Application.Current?.Resources["PauseIcon"] as Geometry
-            : Application.Current?.Resources["PlayIcon"] as Geometry;
 
         if (player?.IsPlaying ?? false)
         {
             positionTimer.Start();
+            PlayIcon = Application.Current?.Resources["PauseIcon"] as Geometry;
         }
         else
         {
             positionTimer.Stop();
+            PlayIcon = Application.Current?.Resources["PlayIcon"] as Geometry;
         }
     }
 
     [RelayCommand]
     private void Prev()
     {
-        OnNextSong?.Invoke(this, new PrevSongArgs());
+        var index = State.CurrentPlaylist?.QueueManager.Previous();
+        if (index == null) return;
+        State.CurrentSong = State.Songs?[index.Value];
+        if (!(player?.IsPlaying ?? true))
+        {
+            player.Play();
+        }
     }
 
     [RelayCommand]
     private void Next()
     {
-        OnNextSong?.Invoke(this, new NextSongArgs());
+        var index = State.CurrentPlaylist?.QueueManager.Next();
+        if (index == null) return;
+        State.CurrentSong = State.Songs?[index.Value];
+        if (!(player?.IsPlaying ?? true))
+        {
+            player.Play();
+        }
     }
 
     [RelayCommand]
@@ -214,12 +232,13 @@ public partial class MainViewModel : ViewModelBase
                 };
                 break;
             case PlaylistBinding playlist:
-                if (CurrentViewModel is PlaylistViewModel vm && vm.Playlist?.Id == playlist.Id)
+                if (CurrentViewModel is PlaylistViewModel && playlist.Id == State.CurrentPlaylist?.Id)
                 {
                     break;
                 }
 
-                CurrentViewModel = new PlaylistViewModel(playlist);
+                State.CurrentPlaylist = playlist;
+                CurrentViewModel = playlistViewModel;
 
                 break;
         }
@@ -230,17 +249,17 @@ public partial class MainViewModel : ViewModelBase
     {
         if (!string.IsNullOrEmpty(Url) && !string.IsNullOrWhiteSpace(Url))
         {
-            Tasks =
+            State.Tasks =
             [
-                .. Tasks.Where(x => x is { IsCanceled: false, IsCompleted: false }),
+                .. State.Tasks.Where(x => x is { IsCanceled: false, IsCompleted: false }),
                 Task.Run(async () =>
                 {
                     try
                     {
-                        var playlist = await Services.AddPlayist(Url, Cts.Token);
+                        var playlist = await State.Services.AddPlayist(Url, State.Cts.Token);
                         if (playlist != null)
                         {
-                            Playlists.Add(ToBinding(playlist));
+                            State.Playlists?.Add(State.ToBinding(playlist));
                         }
 
                         Url = string.Empty;
@@ -254,9 +273,19 @@ public partial class MainViewModel : ViewModelBase
         }
     }
 
+    public void Load()
+    {
+        State.Tasks.Add(State.Services.Initialize(State.Cts.Token));
+    }
 
     public void Closing()
     {
-        AppSettings.GetInstance().Volume = Volume;
+        State.AppSettings.Volume = Volume;
+
+        AppSettings.GetInstance().Dispose();
+        State.AppSettings.Dispose();
+        State.Cts.Cancel();
+        Task.WhenAll(State.Tasks).GetAwaiter().GetResult();
+        State.Cts.Dispose();
     }
 }

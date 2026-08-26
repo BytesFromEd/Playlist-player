@@ -1,8 +1,6 @@
-using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
-using Infrastructure;
 using UI.ViewModels;
 
 namespace UI.Views;
@@ -21,11 +19,6 @@ public partial class MainView : Window
         {
             if (DataContext is MainViewModel vm)
                 vm.Closing();
-            
-            AppSettings.GetInstance().Dispose();
-            ViewModelBase.Cts.Cancel();
-            Task.WhenAll(ViewModelBase.Tasks).GetAwaiter().GetResult();
-            ViewModelBase.Cts.Dispose();
         };
     }
 

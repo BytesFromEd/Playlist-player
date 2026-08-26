@@ -13,7 +13,7 @@
 
     <Grid ColumnDefinitions="75*, 25*">
         <Border>
-            <Image Source="{Binding CurrentSong?.Image}" />
+            <Image Source="{Binding State.CurrentSong?.Image}" />
         </Border>
 
         <Grid Grid.Column="1"
@@ -21,7 +21,7 @@
               RowSpacing="10">
             <Grid ColumnDefinitions="*, Auto, Auto"
                   Margin="0 10 10 0">
-                <Label Content="{Binding Playlist?.Name}" />
+                <Label Content="{Binding State.CurrentPlaylist?.Name}" />
 
                 <Button Grid.Column="1"
                         Command="{Binding ShuffleCommand}">
@@ -36,7 +36,7 @@
             </Grid>
             <ScrollViewer Grid.Row="1">
                 <StackPanel>
-                    <ItemsControl ItemsSource="{Binding Songs}">
+                    <ItemsControl ItemsSource="{Binding State.Songs}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
                                 <Button Padding="0"

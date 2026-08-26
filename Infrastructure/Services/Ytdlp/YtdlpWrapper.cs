@@ -277,8 +277,8 @@ internal class YtdlpWrapper : IDownloadService, IPlaylistProvider
                 .Select(x => new Song(x.Id ?? "ERROR ID",
                     x.Title ?? "ERROR TITLE",
                     x.Uploader ?? "ERROR UPLOADER",
-                    x.Id != null ? Path.Combine(SongsOutFolder, x.Id) : "ERROR ID",
                     x.Id != null ? (x.Id + ".mp3") : "ERROR ID",
+                    x.Id != null ? (x.Id + ".webp") : "ERROR ID",
                     x.Duration ?? -1,
                     DateTime.Now,
                     Provider.Youtube))
