@@ -70,13 +70,11 @@ public partial class PlaylistViewModel : ViewModelBase
             .. State.Tasks.Where(x => x is { IsCanceled: false, IsCompleted: false }),
             Task.Run(() =>
             {
-                State.shouldChangeFile = false;
                 State.CurrentPlaylist.QueueManager.Shuffle();
                 State.Songs = new ObservableCollection<SongBinding>([
                     .. State.CurrentPlaylist.QueueManager.GetSongs().Select(State.ToBinding)
                 ]);
                 State.CurrentSong = State.Songs.First();
-                State.shouldChangeFile = true;
             })
         ];
     }

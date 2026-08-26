@@ -5,7 +5,7 @@ namespace Infrastructure.MediaPlayer;
 
 public class QueueManager(Playlist playlist) : IQueue
 {
-    private int index { get; set; } = 0;
+    private int index = 0;
     private List<Song> queue = playlist.GetSongs();
 
     public void Shuffle()

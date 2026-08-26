@@ -107,9 +107,6 @@ public partial class MainViewModel : ViewModelBase
             if (State.CurrentSong == null)
                 return;
 
-            if (!State.shouldChangeFile)
-                return;
-
             player.SetSong(Path.Combine(State.AppSettings.AppFolder, "songs", State.CurrentSong.Song.GetFile()));
             Lenght = player.Lenght;
             IsSeeking = false;
@@ -155,6 +152,11 @@ public partial class MainViewModel : ViewModelBase
     {
         IsSeeking = false;
         if (player is null) return;
+        if (Progress > Lenght * 0.95)
+        {
+            Next();
+            return;
+        }
 
         player.Position = Progress;
         player.Play();
@@ -190,6 +192,7 @@ public partial class MainViewModel : ViewModelBase
         if (!(player?.IsPlaying ?? true))
         {
             player.Play();
+            positionTimer.Start();
         }
     }
 
@@ -202,6 +205,7 @@ public partial class MainViewModel : ViewModelBase
         if (!(player?.IsPlaying ?? true))
         {
             player.Play();
+            positionTimer.Start();
         }
     }
 

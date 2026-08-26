@@ -24,7 +24,6 @@ public partial class State : ObservableObject
     public readonly AppSettings AppSettings = new();
     public readonly Infrastructure.Services.Services Services = new();
     public readonly CancellationTokenSource Cts = new();
-    public bool shouldChangeFile = true;
 
     public event EventHandler? OnSongChanged;
 
@@ -57,6 +56,11 @@ public partial class State : ObservableObject
     {
         oldValue?.IsSelected = false;
         newValue?.IsSelected = true;
+        if (oldValue?.Song.GetId() == newValue?.Song.GetId())
+        {
+            return;
+        }
+
         OnSongChanged?.Invoke(this, EventArgs.Empty);
     }
 

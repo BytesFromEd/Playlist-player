@@ -87,7 +87,7 @@ internal abstract class Database
                 _ => Provider.External,
             };
 
-            songs.Add(new Song(id, (string)reader["title"], (string)reader["artist"],
+            songs.Add(new Song((string)reader["id"], (string)reader["title"], (string)reader["artist"],
                 (string)reader["file"], (string)reader["cover"], (int)reader["duration"],
                 new DateTime((long)reader["lastPlayed"]), provider));
         }
