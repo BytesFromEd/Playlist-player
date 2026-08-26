@@ -40,22 +40,13 @@ internal abstract class YtdlpDatabase : Database
 
     public static string GetFilename()
     {
-        {
-            try
-            {
-                using var conn = DbConnection();
-                conn.Open();
-                using var cmd = new SQLiteCommand("SELECT FILENAME FROM `yt-dlp` LIMIT 1", conn);
-                using var reader = cmd.ExecuteReader();
+        using var conn = DbConnection();
+        conn.Open();
+        using var cmd = new SQLiteCommand("SELECT FILENAME FROM `yt-dlp` LIMIT 1", conn);
+        using var reader = cmd.ExecuteReader();
 
-                reader.Read();
-                return reader.GetString("FILENAME");
-            }
-            catch
-            {
-                throw;
-            }
-        }
+        reader.Read();
+        return reader.GetString("FILENAME");
     }
 
     public static bool SetVersion(string version)

@@ -2,7 +2,7 @@ using System.Text.Json;
 
 namespace Infrastructure.Services.Github;
 
-internal class Github
+internal static class Github
 {
     public static async Task<string> DownloadLatestReleaseAsset(string owner, string repo, Func<GithubAsset, bool> findCallback, string outputPath, HttpClient httpClient)
     {

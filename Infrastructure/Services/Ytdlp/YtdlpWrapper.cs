@@ -1,5 +1,4 @@
 ﻿using System.Data;
-using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Core.Interfaces;
@@ -24,7 +23,6 @@ internal class YtdlpWrapper : IDownloadService, IPlaylistProvider
 
     private readonly string songsOutFolder = Path.Combine(AppSettings.GetInstance().AppFolder, "./songs");
     private readonly string thumbnailOutFolder = Path.Combine(AppSettings.GetInstance().AppFolder, "./thumbnails");
-    private readonly string toolsOutFolder = Path.Combine(AppSettings.GetInstance().AppFolder, "./tools");
 
     private readonly Regex removeVideo;
 
@@ -32,69 +30,14 @@ internal class YtdlpWrapper : IDownloadService, IPlaylistProvider
     {
         this.client = client;
 
-        //add deno download
-        string version;
-        try
-        {
-            version = Github.Github.GetLatestReleaseVersionAsync("yt-dlp", "yt-dlp", client).GetAwaiter().GetResult();
-        }
-        catch (Exception)
-        {
-            version = YtdlpDatabase.GetVersion();
-        }
-
-        string filename;
-
         YtdlpDatabase.CreateTable();
-
-
-        if (YtdlpDatabase.SetVersion(version))
-        {
-            try
-            {
-                filename = Github.Github.DownloadLatestReleaseAsset("yt-dlp", "yt-dlp", asset =>
-                    {
-                        if (OperatingSystem.IsWindows())
-                        {
-                            return asset.Name.EndsWith(".exe");
-                        }
-
-                        if (OperatingSystem.IsLinux())
-                        {
-                            return asset.Name.EndsWith("_linux");
-                        }
-
-                        if (OperatingSystem.IsMacOS())
-                        {
-                            return asset.Name.EndsWith("_macos");
-                        }
-
-                        throw new Exception(
-                            $"OS: {RuntimeInformation.OSDescription} arch: {RuntimeInformation.OSArchitecture} isn't supported yet!");
-                    }, toolsOutFolder, client)
-                    .GetAwaiter()
-                    .GetResult();
-            }
-            catch (Exception)
-            {
-                YtdlpDatabase.SetVersion("xx");
-                throw;
-            }
-
-            YtdlpDatabase.SetFilename(filename);
-        }
-        else
-        {
-            filename = YtdlpDatabase.GetFilename();
-        }
 
         var outputPath = Path.GetFullPath(songsOutFolder);
 
-        ytdlp = new ManuHub.Ytdlp.NET.Ytdlp(filename)
+        ytdlp = new ManuHub.Ytdlp.NET.Ytdlp()
                 .WithExtractAudio(AudioFormat.Mp3)
                 .WithOutputFolder(outputPath)
                 .WithThumbnails()
-                //.WithJsRuntime(object, "") //todo
                 .WithOutputTemplate("%(id)s.%(ext)s")
                 .WithCookiesFile(Path.Combine(AppSettings.GetInstance().AppFolder, "cookies.txt"))
                 .AddOption("--extractor-args", "youtube:player_client=default,web_embedded")
