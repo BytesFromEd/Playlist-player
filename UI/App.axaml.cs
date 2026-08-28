@@ -10,7 +10,7 @@ namespace UI;
 
 public partial class App : Application
 {
-    private static IServiceProvider Services { get; set; }
+    private static IServiceProvider? Services { get; set; }
 
     public override void Initialize()
     {

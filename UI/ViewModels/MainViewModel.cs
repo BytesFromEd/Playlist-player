@@ -24,6 +24,7 @@ public partial class MainViewModel : ViewModelBase
     [ObservableProperty] public partial float Volume { get; set; }
     [ObservableProperty] public partial long Progress { get; set; } = 0;
     [ObservableProperty] public partial long Lenght { get; set; } = 0;
+    [ObservableProperty] public partial string Time { get; set; } = "";
 
     [ObservableProperty] public partial Geometry? VolumeIcon { get; set; }
     [ObservableProperty] public partial Geometry? PlayIcon { get; set; }
@@ -120,12 +121,20 @@ public partial class MainViewModel : ViewModelBase
 
         OnVolumeChanged(Volume);
 
-        PlayIcon = Application.Current?.Resources["PlayIcon"] as Geometry;
+        if (Application.Current!.TryGetResource("PlayIcon", Application.Current.ActualThemeVariant, out var res))
+            PlayIcon = res as Geometry;
 
         playlistViewModel.OnMessage += (_, args) => { Message = args.Message; };
         state.Services.OnServiceMessage += (_, args) => { Message = args.Message; };
         //player.OnStopped += (_, args) => { Console.WriteLine("ON MAIN"); }; //to fix
     }
+
+    partial void OnProgressChanged(long value)
+    {
+        Time = player?.GetProgress() ?? string.Empty;
+    }
+
+    
 
 
     partial void OnVolumeChanged(float value)
@@ -134,15 +143,21 @@ public partial class MainViewModel : ViewModelBase
 
         if (value < 0.25)
         {
-            VolumeIcon = Application.Current?.Resources["VolumeNoneIcon"] as Geometry;
+            if (Application.Current!.TryGetResource("VolumeNoneIcon", Application.Current.ActualThemeVariant,
+                    out var res))
+                VolumeIcon = res as Geometry;
         }
         else if (value < 0.5)
         {
-            VolumeIcon = Application.Current?.Resources["VolumeLowIcon"] as Geometry;
+            if (Application.Current!.TryGetResource("VolumeLowIcon", Application.Current.ActualThemeVariant,
+                    out var res))
+                VolumeIcon = res as Geometry;
         }
         else
         {
-            VolumeIcon = Application.Current?.Resources["VolumeFullIcon"] as Geometry;
+            if (Application.Current!.TryGetResource("VolumeFullIcon", Application.Current.ActualThemeVariant,
+                    out var res))
+                VolumeIcon = res as Geometry;
         }
 
         player?.Volume = value;
@@ -162,7 +177,9 @@ public partial class MainViewModel : ViewModelBase
         player.Play();
         positionTimer.Start();
 
-        PlayIcon = Application.Current?.Resources["PauseIcon"] as Geometry;
+        if (Application.Current!.TryGetResource("PauseIcon", Application.Current.ActualThemeVariant,
+                out var res))
+            PlayIcon = res as Geometry;
     }
 
     [RelayCommand]
@@ -174,12 +191,16 @@ public partial class MainViewModel : ViewModelBase
         if (player?.IsPlaying ?? false)
         {
             positionTimer.Start();
-            PlayIcon = Application.Current?.Resources["PauseIcon"] as Geometry;
+            if (Application.Current!.TryGetResource("PauseIcon", Application.Current.ActualThemeVariant,
+                    out var res))
+                PlayIcon = res as Geometry;
         }
         else
         {
             positionTimer.Stop();
-            PlayIcon = Application.Current?.Resources["PlayIcon"] as Geometry;
+            if (Application.Current!.TryGetResource("PlayIcon", Application.Current.ActualThemeVariant,
+                    out var res))
+                PlayIcon = res as Geometry;
         }
     }
 
@@ -214,7 +235,11 @@ public partial class MainViewModel : ViewModelBase
     {
         isMuted = !isMuted;
         if (isMuted)
-            VolumeIcon = Application.Current?.Resources["VolumeMuteIcon"] as Geometry;
+        {
+            if (Application.Current!.TryGetResource("VolumeMuteIcon", Application.Current.ActualThemeVariant,
+                    out var res))
+                VolumeIcon = res as Geometry;
+        }
         else
         {
             OnVolumeChanged(Volume);

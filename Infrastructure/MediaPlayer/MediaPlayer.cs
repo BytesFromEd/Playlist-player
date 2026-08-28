@@ -34,6 +34,15 @@ public class MediaPlayer : IAudioPlayer, IDisposable
         }
     }
 
+    public string GetProgress()
+    {
+        if (currentSong == null) return string.Empty;
+
+        var lenght = currentSong.TotalTime;
+        var progress = currentSong.CurrentTime;
+        return progress.ToString(@"mm\:ss") + " / " + lenght.ToString(@"mm\:ss");
+    }
+
     public float Volume
     {
         get => player.Volume;

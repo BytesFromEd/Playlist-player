@@ -20,5 +20,5 @@ public partial class PlaylistBinding(Playlist playlist, Bitmap? image) : Observa
 
     [ObservableProperty] public partial Bitmap? Image { get; set; } = image;
 
-    public readonly QueueManager QueueManager = new(playlist);
+    public QueueManager QueueManager = new(playlist);
 }

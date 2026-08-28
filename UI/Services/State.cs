@@ -9,6 +9,7 @@ using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Core.Models;
 using Infrastructure;
+using Infrastructure.MediaPlayer;
 using UI.ViewModels.Models;
 
 namespace UI.Services;
@@ -39,11 +40,19 @@ public partial class State : ObservableObject
             Task.Run(() =>
             {
                 var fullPlaylist = Services.GetPlaylist(newValue.Id);
-                var playlistBinding = ToBinding(fullPlaylist);
-                var songs = playlistBinding.QueueManager.GetSongs().Select(ToBinding).ToList();
-                
-                Songs = new ObservableCollection<SongBinding>(songs);
+                if (CurrentPlaylist == null)
+                {
+                    CurrentPlaylist = ToBinding(fullPlaylist);
+                }
+                else
+                {
+                    CurrentPlaylist.Playlist = fullPlaylist;
+                    CurrentPlaylist.QueueManager = new QueueManager(fullPlaylist);
+                }
 
+                var songs = CurrentPlaylist.QueueManager.GetSongs().Select(ToBinding).ToList();
+
+                Songs = new ObservableCollection<SongBinding>(songs);
                 if (Songs.Count <= 0) return;
 
                 CurrentSong?.IsSelected = false;

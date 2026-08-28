@@ -186,7 +186,7 @@ internal class YtdlpWrapper : IDownloadService, IPlaylistProvider
         Playlist rawPlaylist;
         try
         {
-            rawPlaylist = JsonSerializer.Deserialize<Playlist>(result.FullOutput, options);
+            rawPlaylist = JsonSerializer.Deserialize<Playlist>(result.FullOutput, options)!;
         }
         catch (Exception e)
         {

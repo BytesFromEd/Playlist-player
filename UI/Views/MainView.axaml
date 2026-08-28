@@ -3,47 +3,52 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="clr-namespace:UI.ViewModels"
+        xmlns:designModels="clr-namespace:UI.ViewModels.DesignModels"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="400"
         x:Class="UI.Views.MainView"
         x:DataType="vm:MainViewModel"
         Title="UI">
 
     <Design.DataContext>
-        <vm:MainViewModel></vm:MainViewModel>
+        <designModels:MainViewModelDesign></designModels:MainViewModelDesign>
     </Design.DataContext>
 
     <Grid RowDefinitions="*, Auto">
         <Grid ColumnDefinitions="20*, 80*">
 
-            <Grid RowDefinitions="Auto, *, Auto" RowSpacing="10">
+            <Grid RowDefinitions="Auto, *, Auto">
 
+                <Grid RowDefinitions="*, Auto" RowSpacing="10" Margin="0 0 0 10">
 
-                <Popup Grid.Row="0" x:Name="PlaylistPopup"
-                       PlacementTarget="{Binding #PopupArea}"
-                       Placement="Center"
-                       VerticalAlignment="Stretch"
-                       HorizontalAlignment="Stretch"
-                       IsLightDismissEnabled="True">
-                    <Border Padding="20">
-                        <StackPanel Spacing="10">
-                            <TextBox PlaceholderText="Url to add playlist" Text="{Binding Url}" />
-                            <Button HorizontalAlignment="Center" Command="{Binding AddPlaylistCommand}">
-                                <StackPanel Orientation="Horizontal">
-                                    <PathIcon Data="{StaticResource SaveIcon}"></PathIcon>
-                                    <Label>Save</Label>
-                                </StackPanel>
-                            </Button>
+                    <Popup Grid.Row="0" x:Name="PlaylistPopup"
+                           PlacementTarget="{Binding #PopupArea}"
+                           Placement="Center"
+                           VerticalAlignment="Stretch"
+                           HorizontalAlignment="Stretch"
+                           IsLightDismissEnabled="True">
+                        <Border Padding="20">
+                            <StackPanel Spacing="10">
+                                <TextBox PlaceholderText="Url to add playlist" Text="{Binding Url}" />
+                                <Button HorizontalAlignment="Center" Command="{Binding AddPlaylistCommand}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <PathIcon Data="{StaticResource SaveIcon}"></PathIcon>
+                                        <Label>Save</Label>
+                                    </StackPanel>
+                                </Button>
+                            </StackPanel>
+                        </Border>
+                    </Popup>
+
+                    <Button Grid.Row="0" Click="OnTogglePopup" HorizontalAlignment="Stretch"
+                            HorizontalContentAlignment="Center">
+                        <StackPanel Orientation="Horizontal">
+                            <PathIcon Data="{StaticResource PlusPlaylistIcon}"></PathIcon>
+                            <Label>Add Playlist</Label>
                         </StackPanel>
-                    </Border>
-                </Popup>
+                    </Button>
 
-                <Button Grid.Row="0" Click="OnTogglePopup" HorizontalAlignment="Stretch"
-                        HorizontalContentAlignment="Center">
-                    <StackPanel Orientation="Horizontal">
-                        <PathIcon Data="{StaticResource PlusPlaylistIcon}"></PathIcon>
-                        <Label>Add Playlist</Label>
-                    </StackPanel>
-                </Button>
+                    <Separator Grid.Row="1" />
+                </Grid>
 
                 <ScrollViewer Grid.Row="1">
                     <StackPanel Spacing="5" HorizontalAlignment="Stretch">
@@ -91,7 +96,10 @@
                 <Grid Grid.Row="1" ColumnDefinitions="30*, 40*, 30*">
                     <Grid RowDefinitions="Auto, Auto" Grid.Column="0" VerticalAlignment="Center">
                         <Label Content="{Binding State.CurrentSong?.Title}" />
-                        <Label Grid.Row="1" Content="{Binding State.CurrentSong?.Artist}" />
+                        <Grid Grid.Row="1" ColumnDefinitions="*, Auto">
+                            <Label Content="{Binding State.CurrentSong?.Artist}" />
+                            <Label Grid.Column="1" Content="{Binding Time}" />
+                        </Grid>
                     </Grid>
 
                     <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0 20">
