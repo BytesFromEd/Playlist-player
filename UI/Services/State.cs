@@ -19,6 +19,7 @@ public partial class State : ObservableObject
     [ObservableProperty] public partial ObservableCollection<SongBinding>? Songs { get; set; }
     [ObservableProperty] public partial SongBinding? CurrentSong { get; set; }
     [ObservableProperty] public partial PlaylistBinding? CurrentPlaylist { get; set; }
+    [ObservableProperty] public partial bool IsRefreshing { get; set; } = false;
 
     public List<Task> Tasks = [];
     public readonly AppSettings AppSettings = new();
@@ -29,7 +30,7 @@ public partial class State : ObservableObject
 
     partial void OnCurrentPlaylistChanged(PlaylistBinding? oldValue, PlaylistBinding? newValue)
     {
-        if (newValue?.Id == null || newValue.Id == oldValue?.Id)
+        if (newValue?.Id == null || (newValue.Id == oldValue?.Id && !IsRefreshing))
             return;
 
         Tasks =
@@ -40,7 +41,7 @@ public partial class State : ObservableObject
                 var fullPlaylist = Services.GetPlaylist(newValue.Id);
                 var playlistBinding = ToBinding(fullPlaylist);
                 var songs = playlistBinding.QueueManager.GetSongs().Select(ToBinding).ToList();
-                CurrentPlaylist = playlistBinding;
+                
                 Songs = new ObservableCollection<SongBinding>(songs);
 
                 if (Songs.Count <= 0) return;

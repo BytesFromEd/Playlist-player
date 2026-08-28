@@ -6,6 +6,7 @@ using Core.Models;
 using Core.Models.Enums;
 using Infrastructure.Services.Storage;
 using ManuHub.Ytdlp.NET;
+using ManuHub.Ytdlp.NET.Core;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Processing;
 using Playlist = Infrastructure.Services.Ytdlp.YtdlpJsonClasses.Playlist;
@@ -34,7 +35,14 @@ internal class YtdlpWrapper : IDownloadService, IPlaylistProvider
 
         var outputPath = Path.GetFullPath(songsOutFolder);
 
-        ytdlp = new ManuHub.Ytdlp.NET.Ytdlp()
+        var executable = 0 switch
+        {
+            _ when OperatingSystem.IsWindows() => "yt-dlp.exe",
+            _ when OperatingSystem.IsLinux() => "yt-dlp",
+            _ => throw new PlatformNotSupportedException()
+        };
+
+        ytdlp = new ManuHub.Ytdlp.NET.Ytdlp(executable)
                 .WithExtractAudio(AudioFormat.Mp3)
                 .WithOutputFolder(outputPath)
                 .WithThumbnails()
@@ -148,10 +156,20 @@ internal class YtdlpWrapper : IDownloadService, IPlaylistProvider
     private async Task<Core.Models.Playlist?> PlaylistSetter(string url, string id, CancellationToken ct)
     {
         if (url.Contains("music.")) url = url.Replace("music.", "");
+        ProcessResult result;
 
-        var result =
-            await ytdlp.ExecuteRawAsync(string.Join(" ",
-                ["--dump-single-json", "--skip-download", "--flat-playlist", url]), null, ct);
+        try
+        {
+            result =
+                await ytdlp.ExecuteRawAsync(string.Join(" ",
+                    ["--dump-single-json", "--skip-download", "--flat-playlist", url]), null, ct);
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            throw;
+        }
+
         if (ct.IsCancellationRequested)
         {
             return null;
@@ -163,8 +181,21 @@ internal class YtdlpWrapper : IDownloadService, IPlaylistProvider
             throw new Exception("yt-dlp exit code: " + result.ExitCode + " please see logs to have more information");
         }
 
-        var rawPlaylist = JsonSerializer.Deserialize<Playlist>(result.FullOutput, options);
+        Console.WriteLine("Playlist information fetched");
 
+        Playlist rawPlaylist;
+        try
+        {
+            rawPlaylist = JsonSerializer.Deserialize<Playlist>(result.FullOutput, options);
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            throw;
+        }
+
+        Console.WriteLine("Playlist fetched information is right");
+        
         var thumbnailUrl = rawPlaylist?.Thumbnails?.MaxBy(x => x.Id)?.Url;
 
         if (thumbnailUrl != null)
@@ -209,6 +240,8 @@ internal class YtdlpWrapper : IDownloadService, IPlaylistProvider
                 return null;
             }
         }
+        
+        Console.WriteLine("Playlist thumbnail cropped");
 
         var playlist = new Core.Models.Playlist(rawPlaylist?.Title ?? "ERROR",
             rawPlaylist?.Uploader ?? "ERROR",
@@ -222,11 +255,13 @@ internal class YtdlpWrapper : IDownloadService, IPlaylistProvider
                     x.Uploader ?? "ERROR UPLOADER",
                     x.Id != null ? (x.Id + ".mp3") : "ERROR ID",
                     x.Id != null ? (x.Id + ".webp") : "ERROR ID",
-                    x.Duration ?? -1,
+                    (int)Math.Floor(x.Duration ?? -1),
                     DateTime.Now,
                     Provider.Youtube))
             ?? []
         );
+        
+        Console.WriteLine("Playlist information successfully downloaded");
         return playlist;
     }
 

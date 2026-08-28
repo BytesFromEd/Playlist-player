@@ -162,13 +162,14 @@ internal abstract class Database
 
             using var cmd =
                 new SQLiteCommand(
-                    "INSERT OR IGNORE INTO Songs(id, title, artist, file, duration, lastPlayed, provider) VALUES (@id, @title, @artist, @file, @duration, @lastPlayed, @provider)",
+                    "INSERT OR IGNORE INTO Songs(id, title, artist, file, cover, duration, lastPlayed, provider) VALUES (@id, @title, @artist, @file, @cover, @duration, @lastPlayed, @provider)",
                     conn);
 
             cmd.Parameters.AddWithValue("@id", song.GetId());
             cmd.Parameters.AddWithValue("@title", song.GetTitle());
             cmd.Parameters.AddWithValue("@artist", song.GetArtist());
             cmd.Parameters.AddWithValue("@file", song.GetFile());
+            cmd.Parameters.AddWithValue("@cover", song.GetCover());
             cmd.Parameters.AddWithValue("@duration", song.GetDuration());
             cmd.Parameters.AddWithValue("@lastPlayed", song.GetLastPlayed());
             cmd.Parameters.AddWithValue("@provider", provider);

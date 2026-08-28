@@ -30,7 +30,7 @@
 
                 <Button Grid.Column="2"
                         Command="{Binding RefreshCommand}"
-                        IsEnabled="{Binding !IsRefreshing}">
+                        IsEnabled="{Binding !State.IsRefreshing}">
                     <PathIcon Data="{StaticResource RefreshIcon}" />
                 </Button>
             </Grid>

@@ -14,8 +14,6 @@ public partial class PlaylistViewModel : ViewModelBase
 {
     public event EventHandler<MessageArgs>? OnMessage;
 
-    [ObservableProperty] public partial bool IsRefreshing { get; private set; } = false;
-
     [ObservableProperty] public partial State State { get; set; }
 
     public PlaylistViewModel(State state)
@@ -40,8 +38,8 @@ public partial class PlaylistViewModel : ViewModelBase
     [RelayCommand]
     private void Refresh()
     {
-        if (State.CurrentPlaylist == null || IsRefreshing) return;
-        IsRefreshing = true;
+        if (State.CurrentPlaylist == null || State.IsRefreshing) return;
+        State.IsRefreshing = true;
         State.Tasks =
         [
             .. State.Tasks.Where(x => x is { IsCanceled: false, IsCompleted: false }),
@@ -53,10 +51,9 @@ public partial class PlaylistViewModel : ViewModelBase
                 {
                     State.CurrentPlaylist = State.ToBinding(temp);
                 }
-            }).ContinueWith(_ =>
-            {
+                
                 OnMessage?.Invoke(this, new MessageArgs("Refresh done"));
-                IsRefreshing = false;
+                State.IsRefreshing = false;
             })
         ];
     }
