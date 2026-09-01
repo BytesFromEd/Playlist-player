@@ -1,4 +1,3 @@
-using System;
 using UI.Services;
 
 namespace UI.ViewModels.DesignModels;

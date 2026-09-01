@@ -1,0 +1,28 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- Primary Accent -->
+    <Color x:Key="PrimaryColor">#D8581F</Color>
+    <Color x:Key="PrimaryDarkColor">#8C3A12</Color>
+    <Color x:Key="PrimaryLightColor">#F0864A</Color>
+
+    <!-- Backgrounds / Surfaces -->
+    <Color x:Key="BackgroundColor">#1B1714</Color>
+    <Color x:Key="SurfaceColor">#2A211C</Color>
+    <Color x:Key="SurfaceElevatedColor">#3A2E27</Color>
+
+    <!-- Text -->
+    <Color x:Key="TextPrimaryColor">#F5E9DA</Color>
+    <Color x:Key="TextMutedColor">#B8A491</Color>
+
+    <SolidColorBrush x:Key="PrimaryBrush" Color="{StaticResource PrimaryColor}" />
+    <SolidColorBrush x:Key="PrimaryDarkBrush" Color="{StaticResource PrimaryDarkColor}" />
+    <SolidColorBrush x:Key="PrimaryLightBrush" Color="{StaticResource PrimaryLightColor}" />
+
+    <SolidColorBrush x:Key="BackgroundBrush" Color="{StaticResource BackgroundColor}" />
+    <SolidColorBrush x:Key="SurfaceBrush" Color="{StaticResource SurfaceColor}" />
+    <SolidColorBrush x:Key="SurfaceElevatedBrush" Color="{StaticResource SurfaceElevatedColor}" />
+
+    <SolidColorBrush x:Key="TextPrimaryBrush" Color="{StaticResource TextPrimaryColor}" />
+    <SolidColorBrush x:Key="TextMutedBrush" Color="{StaticResource TextMutedColor}" />
+</ResourceDictionary>

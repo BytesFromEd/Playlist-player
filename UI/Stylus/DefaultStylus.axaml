@@ -1,0 +1,177 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Styles.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceInclude Source="/Resources/DefaultTheme.axaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Styles.Resources>
+
+    <Design.PreviewWith>
+        <Border Padding="20">
+            <!-- components -->
+        </Border>
+    </Design.PreviewWith>
+
+    <!-- Add Styles Here -->
+    <Style Selector="Window">
+        <Setter Property="Background" Value="{StaticResource BackgroundColor}" />
+        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+    </Style>
+
+    <Style Selector="Separator">
+        <Setter Property="Background" Value="{StaticResource TextMutedBrush}" />
+        <Setter Property="Opacity" Value=".1" />
+        <Setter Property="Margin" Value="0" />
+
+        <Style Selector="^.vertical">
+            <Setter Property="Height" Value="NaN" />
+            <Setter Property="Width" Value="1" />
+        </Style>
+    </Style>
+
+    <Style Selector="Grid">
+        <Style Selector="^.panel">
+            <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
+        </Style>
+        <Style Selector="^.top">
+            <Setter Property="Background" Value="{StaticResource SurfaceElevatedBrush}" />
+        </Style>
+    </Style>
+
+    <Style Selector="Slider:horizontal">
+        <Setter Property="Background" Value="{StaticResource TextMutedBrush}" />
+        <Setter Property="Foreground" Value="{StaticResource PrimaryBrush}" />
+        <Setter Property="Height" Value="17" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+
+        <Style Selector="^ Track">
+            <Style Selector="^ RepeatButton Border">
+                <Setter Property="CornerRadius" Value="0" />
+                <Setter Property="Height" Value="5" />
+            </Style>
+
+            <Style Selector="^ Thumb">
+                <Setter Property="Height" Value="10" />
+                <Setter Property="Width" Value="10" />
+                <Setter Property="BorderThickness" Value="0" />
+                <Setter Property="Background" Value="{StaticResource PrimaryLightBrush}" />
+            </Style>
+        </Style>
+
+        <Style Selector="^:pointerover Track RepeatButton Border">
+            <Setter Property="Background" Value="{StaticResource TextMutedBrush}" />
+        </Style>
+
+        <Style Selector="^:pointerover Track Thumb">
+            <Setter Property="Background" Value="{StaticResource PrimaryLightBrush}" />
+        </Style>
+
+        <Style Selector="^:pressed Track RepeatButton Border">
+            <Setter Property="Background" Value="{StaticResource PrimaryLightBrush}" />
+        </Style>
+
+        <Style Selector="^:pressed Track Thumb">
+            <Setter Property="Background" Value="{StaticResource PrimaryBrush}" />
+        </Style>
+    </Style>
+
+    <Style Selector="Button">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="0" />
+
+        <Style Selector="^:pointerover /template/ ContentPresenter">
+            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+            <Setter Property="Background" Value="{StaticResource PrimaryLightBrush}" />
+        </Style>
+
+        <Style Selector="^:pressed /template/ ContentPresenter">
+            <Setter Property="Background" Value="{StaticResource PrimaryDarkBrush}" />
+            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+        </Style>
+
+        <Style Selector="^.rounded">
+            <Setter Property="Height" Value="35" />
+            <Setter Property="Width" Value="35" />
+            <Setter Property="CornerRadius" Value="100" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Style Selector="^.bigger">
+                <Setter Property="Height" Value="45" />
+                <Setter Property="Width" Value="45" />
+            </Style>
+        </Style>
+
+        <Style Selector="^.accented">
+            <Setter Property="Background" Value="{StaticResource PrimaryBrush}" />
+            <Setter Property="Padding" Value="5" />
+        </Style>
+    </Style>
+
+    <Style Selector="Button.song">
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+        <Setter Property="Height" Value="100" />
+        <Setter Property="CornerRadius" Value="20 0 0 20" />
+
+        <Style Selector="^ Border">
+            <Setter Property="ClipToBounds" Value="True"></Setter>
+            <Setter Property="CornerRadius" Value="10 0 0 10"></Setter>
+        </Style>
+
+        <Style Selector="^ Grid Label:nth-child(1)">
+            <Setter Property="FontWeight" Value="Bold" />
+        </Style>
+
+        <Style Selector="^ Grid Label:nth-child(2)">
+            <Setter Property="FontWeight" Value="Normal" />
+        </Style>
+
+        <Style Selector="^ Grid Label:nth-child(3)">
+            <Setter Property="FontWeight" Value="Normal" />
+        </Style>
+
+        <Style Selector="^ Grid StackPanel">
+            <Setter Property="Margin" Value="10 0 0 0" />
+        </Style>
+
+        <Style Selector="^.selected">
+            <Setter Property="Background" Value="{StaticResource PrimaryBrush}" />
+        </Style>
+    </Style>
+
+
+    <Style Selector="Button.playlist">
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Height" Value="50" />
+        <Setter Property="CornerRadius" Value="20 10 10 20" />
+
+        <Style Selector="^ Border">
+            <Setter Property="ClipToBounds" Value="True"></Setter>
+            <Setter Property="CornerRadius" Value="10 0 0 10"></Setter>
+        </Style>
+
+        <Style Selector="^ Grid Label:nth-child(1)">
+            <Setter Property="FontWeight" Value="Bold" />
+        </Style>
+
+        <Style Selector="^ Grid Label:nth-child(2)">
+            <Setter Property="FontWeight" Value="Normal" />
+        </Style>
+
+        <Style Selector="^ Grid StackPanel">
+            <Setter Property="Margin" Value="10 0 0 0" />
+        </Style>
+
+        <Style Selector="^.selected">
+            <Setter Property="Background" Value="{StaticResource PrimaryBrush}" />
+        </Style>
+    </Style>
+
+</Styles>

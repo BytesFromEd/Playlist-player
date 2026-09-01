@@ -9,6 +9,7 @@ namespace UI.ViewModels.Models;
 public partial class PlaylistBinding(Playlist playlist, Bitmap? image) : ObservableObject
 {
     [ObservableProperty] public partial string Name { get; set; } = playlist.GetName();
+    [ObservableProperty] public partial bool IsSelected { get; set; } = false;
 
     [ObservableProperty] public partial string Owner { get; set; } = playlist.GetOwner();
 

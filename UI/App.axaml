@@ -11,7 +11,8 @@
 
     <Application.Styles>
         <FluentTheme />
-
+        
+        <StyleInclude Source="Stylus/DefaultStylus.axaml"/>
     </Application.Styles>
 
     <Application.Resources>

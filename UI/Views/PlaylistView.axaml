@@ -3,12 +3,13 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:UI.ViewModels"
-             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             xmlns:designModels="clr-namespace:UI.ViewModels.DesignModels"
+             mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="500"
              x:Class="UI.Views.PlaylistView"
              x:DataType="vm:PlaylistViewModel">
 
     <Design.DataContext>
-        <vm:PlaylistViewModel />
+        <designModels:PlaylistViewModelDesign />
     </Design.DataContext>
 
     <Grid ColumnDefinitions="75*, 25*">
@@ -16,52 +17,59 @@
             <Image Source="{Binding State.CurrentSong?.Image}" />
         </Border>
 
-        <Grid Grid.Column="1"
-              RowDefinitions="Auto, *"
-              RowSpacing="10">
-            <Grid ColumnDefinitions="*, Auto, Auto"
-                  Margin="0 10 10 0">
-                <Label Content="{Binding State.CurrentPlaylist?.Name}" />
+        <Grid Grid.Column="1" Classes="panel" ColumnDefinitions="Auto, *">
 
-                <Button Grid.Column="1"
-                        Command="{Binding ShuffleCommand}">
-                    <PathIcon Data="{StaticResource ShuffleIcon}" />
-                </Button>
+            <Separator Classes="vertical" />
 
-                <Button Grid.Column="2"
-                        Command="{Binding RefreshCommand}"
-                        IsEnabled="{Binding !State.IsRefreshing}">
-                    <PathIcon Data="{StaticResource RefreshIcon}" />
-                </Button>
+            <Grid Grid.Column="1"
+                  RowDefinitions="Auto, *"
+                  RowSpacing="10"
+                  Margin="15 0 0 0">
+                <Grid ColumnDefinitions="*, Auto, Auto">
+                    <Label Content="{Binding State.CurrentPlaylist?.Name}" VerticalAlignment="Center" />
+
+                    <Button Grid.Column="1"
+                            Command="{Binding ShuffleCommand}"
+                            Classes="rounded">
+                        <PathIcon Data="{StaticResource ShuffleIcon}" />
+                    </Button>
+
+                    <Button Grid.Column="2"
+                            Command="{Binding RefreshCommand}"
+                            IsEnabled="{Binding !State.IsRefreshing}"
+                            Classes="rounded">
+                        <PathIcon Data="{StaticResource RefreshIcon}" />
+                    </Button>
+                </Grid>
+                <ScrollViewer Grid.Row="1">
+                    <StackPanel>
+                        <ItemsControl ItemsSource="{Binding State.Songs}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Button Classes="song"
+                                            Classes.selected="{Binding IsSelected}"
+                                            Command="{Binding $parent[ItemsControl].((vm:PlaylistViewModel)DataContext)?.SetSongCommand}"
+                                            CommandParameter="{Binding}">
+                                        <Grid ColumnDefinitions="Auto, *, Auto">
+                                            <Border>
+                                                <Image Source="{Binding Image}" />
+                                            </Border>
+                                            <StackPanel Grid.Column="1"
+                                                        Orientation="Vertical">
+                                                <Label Content="{Binding Title}" />
+                                                <Label Content="{Binding Artist}" />
+                                            </StackPanel>
+                                            <Label Grid.Column="2"
+                                                   Content="{Binding Duration}"
+                                                   VerticalAlignment="Bottom" Margin="0 0 15 0" />
+                                        </Grid>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </ScrollViewer>
             </Grid>
-            <ScrollViewer Grid.Row="1">
-                <StackPanel>
-                    <ItemsControl ItemsSource="{Binding State.Songs}">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <Button Padding="0"
-                                        Command="{Binding $parent[ItemsControl].((vm:PlaylistViewModel)DataContext)?.SetSongCommand}"
-                                        CommandParameter="{Binding}"
-                                        HorizontalAlignment="Stretch"
-                                        Height="100">
-                                    <Grid ColumnDefinitions="Auto, *, Auto">
-                                        <Image Source="{Binding Image}" />
-                                        <StackPanel Grid.Column="1"
-                                                    Orientation="Vertical">
-                                            <Label Content="{Binding Title}" />
-                                            <Label Content="{Binding Artist}" />
-                                            <Label Content="Current playing" IsVisible="{Binding IsSelected}" />
-                                        </StackPanel>
-                                        <Label Grid.Column="2"
-                                               Content="{Binding Duration}"
-                                               VerticalAlignment="Bottom" />
-                                    </Grid>
-                                </Button>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </StackPanel>
-            </ScrollViewer>
         </Grid>
     </Grid>
 </UserControl>

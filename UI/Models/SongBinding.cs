@@ -3,7 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using Core.Models;
 using Core.Models.Enums;
 
-namespace UI.ViewModels.Models;
+namespace UI.Models;
 
 public partial class SongBinding(Song song, Bitmap? image, string duration) : ObservableObject
 {

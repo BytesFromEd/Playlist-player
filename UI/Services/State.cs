@@ -10,6 +10,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using Core.Models;
 using Infrastructure;
 using Infrastructure.MediaPlayer;
+using UI.Models;
 using UI.ViewModels.Models;
 
 namespace UI.Services;
@@ -39,6 +40,11 @@ public partial class State : ObservableObject
             .. Tasks.Where(x => x is { IsCanceled: false, IsCompleted: false }),
             Task.Run(() =>
             {
+                Playlists = [.. Playlists?.Select(x => x.Id == newValue.Id ? newValue : x) ?? []];
+
+                oldValue?.IsSelected = false;
+                newValue.IsSelected = true;
+
                 var fullPlaylist = Services.GetPlaylist(newValue.Id);
                 if (CurrentPlaylist == null)
                 {

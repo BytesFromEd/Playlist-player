@@ -1,7 +1,7 @@
 ﻿namespace UI.ViewModels.Models;
 
-public class ChangeSongArgs(SongBinding songBinding, bool changeIndex) : SongEventArgs
+public class ChangeSongArgs(UI.Models.SongBinding songBinding, bool changeIndex) : SongEventArgs
 {
-    public readonly SongBinding SongBinding = songBinding;
+    public readonly UI.Models.SongBinding SongBinding = songBinding;
     public readonly bool ChangeIndex = changeIndex;
 }

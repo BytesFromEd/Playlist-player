@@ -69,8 +69,9 @@ public partial class MainViewModel : ViewModelBase
         var playlists = state.Services.GetPlaylists().Select(state.ToBinding).ToList();
         if (playlists.Count > 0)
         {
-            State.CurrentPlaylist = playlists.First();
             CurrentViewModel = playlistViewModel;
+            State.CurrentPlaylist = playlists.First();
+            State.CurrentPlaylist.IsSelected = true;
         }
         else
         {
@@ -133,9 +134,6 @@ public partial class MainViewModel : ViewModelBase
     {
         Time = player?.GetProgress() ?? string.Empty;
     }
-
-    
-
 
     partial void OnVolumeChanged(float value)
     {
@@ -210,11 +208,9 @@ public partial class MainViewModel : ViewModelBase
         var index = State.CurrentPlaylist?.QueueManager.Previous();
         if (index == null) return;
         State.CurrentSong = State.Songs?[index.Value];
-        if (!(player?.IsPlaying ?? true))
-        {
-            player.Play();
-            positionTimer.Start();
-        }
+        if (player?.IsPlaying ?? true) return;
+        player.Play();
+        positionTimer.Start();
     }
 
     [RelayCommand]
@@ -223,11 +219,9 @@ public partial class MainViewModel : ViewModelBase
         var index = State.CurrentPlaylist?.QueueManager.Next();
         if (index == null) return;
         State.CurrentSong = State.Songs?[index.Value];
-        if (!(player?.IsPlaying ?? true))
-        {
-            player.Play();
-            positionTimer.Start();
-        }
+        if (player?.IsPlaying ?? true) return;
+        player.Play();
+        positionTimer.Start();
     }
 
     [RelayCommand]

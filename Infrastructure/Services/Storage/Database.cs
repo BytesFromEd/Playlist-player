@@ -186,6 +186,29 @@ internal abstract class Database
         }
     }
 
+
+    public static void RemoveSongs(string playlist, params List<Song> songs)
+    {
+        using var conn = DbConnection();
+        conn.Open();
+
+        var songIds = songs.Select(s => s.GetId()).ToList();
+        var paramNames = songIds.Select((_, i) => $"@song{i}").ToList();
+
+        var sql = songs.Count > 0
+            ? $"DELETE FROM Song_Playlist WHERE playlist_id = @playlist AND song_id NOT IN ({string.Join(",", paramNames)});"
+            : $"DELETE FROM Song_Playlist WHERE playlist_id = @playlist";
+
+        using var cmd = new SQLiteCommand(sql, conn);
+        cmd.Parameters.AddWithValue("@playlist", playlist);
+        for (var i = 0; i < songIds.Count; i++)
+        {
+            cmd.Parameters.AddWithValue(paramNames[i], songIds[i]);
+        }
+
+        cmd.ExecuteNonQuery();
+    }
+
     public static void AddPlaylist(Playlist playlist)
     {
         var provider = playlist.GetProvider() switch
@@ -224,5 +247,6 @@ internal abstract class Database
         cmd.ExecuteNonQuery();
 
         AddSongs(playlist.GetId(), playlist.GetSongs());
+        RemoveSongs(playlist.GetId(), playlist.GetSongs());
     }
 }
