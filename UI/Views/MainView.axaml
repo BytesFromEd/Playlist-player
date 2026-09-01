@@ -70,10 +70,14 @@
                                                 <Border>
                                                     <Image Source="{Binding Image}" />
                                                 </Border>
-                                                <StackPanel Grid.Column="1">
-                                                    <Label Content="{Binding Name}" />
-                                                    <Label Content="{Binding Owner}" />
-                                                </StackPanel>
+                                                <Grid RowDefinitions="Auto, Auto" Grid.Column="1">
+                                                    <Label Classes="title" Content="{Binding Name}" />
+                                                    <Grid Grid.Row="1" ColumnDefinitions="*, Auto">
+                                                        <Label Classes="owner" Content="{Binding Owner}" />
+                                                        <PathIcon Grid.Column="1" Classes="icon"
+                                                                  Data="{Binding Provider}" />
+                                                    </Grid>
+                                                </Grid>
                                             </Grid>
                                         </Button>
                                     </DataTemplate>
@@ -85,7 +89,8 @@
 
                     <Button Grid.Row="2" HorizontalAlignment="Right" CommandParameter="settings"
                             Command="{Binding GoToCommand}"
-                            Classes="rounded">
+                            Classes="rounded"
+                            Margin="0 10">
                         <PathIcon Data="{StaticResource CogIcon}"></PathIcon>
                     </Button>
                 </Grid>

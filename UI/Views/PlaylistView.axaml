@@ -4,7 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:UI.ViewModels"
              xmlns:designModels="clr-namespace:UI.ViewModels.DesignModels"
-             mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="500"
+             mc:Ignorable="d" d:DesignWidth="1600" d:DesignHeight="500"
              x:Class="UI.Views.PlaylistView"
              x:DataType="vm:PlaylistViewModel">
 
@@ -50,18 +50,23 @@
                                             Classes.selected="{Binding IsSelected}"
                                             Command="{Binding $parent[ItemsControl].((vm:PlaylistViewModel)DataContext)?.SetSongCommand}"
                                             CommandParameter="{Binding}">
-                                        <Grid ColumnDefinitions="Auto, *, Auto">
+                                        <Grid ColumnDefinitions="Auto, *">
                                             <Border>
                                                 <Image Source="{Binding Image}" />
                                             </Border>
-                                            <StackPanel Grid.Column="1"
-                                                        Orientation="Vertical">
-                                                <Label Content="{Binding Title}" />
-                                                <Label Content="{Binding Artist}" />
-                                            </StackPanel>
-                                            <Label Grid.Column="2"
-                                                   Content="{Binding Duration}"
-                                                   VerticalAlignment="Bottom" Margin="0 0 15 0" />
+                                            <Grid Grid.Column="1"
+                                                  RowDefinitions="Auto, *, Auto"
+                                                  Margin="0 0 15 0">
+                                                <Label Classes="title" Content="{Binding Title}" />
+                                                <Label Grid.Row="1" Classes="artist" Content="{Binding Artist}" />
+                                                <Grid Grid.Row="2" ColumnDefinitions="*, Auto">
+                                                    <PathIcon Classes="icon" Data="{Binding Provider}" />
+
+                                                    <Label Classes="duration" Grid.Column="1"
+                                                           Content="{Binding Duration}" />
+                                                </Grid>
+                                            </Grid>
+
                                         </Grid>
                                     </Button>
                                 </DataTemplate>

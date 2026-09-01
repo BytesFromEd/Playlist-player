@@ -124,16 +124,22 @@
             <Setter Property="CornerRadius" Value="10 0 0 10"></Setter>
         </Style>
 
-        <Style Selector="^ Grid Label:nth-child(1)">
+        <Style Selector="^ Grid Label.title">
             <Setter Property="FontWeight" Value="Bold" />
         </Style>
 
-        <Style Selector="^ Grid Label:nth-child(2)">
+        <Style Selector="^ Grid Label.artist">
             <Setter Property="FontWeight" Value="Normal" />
         </Style>
 
-        <Style Selector="^ Grid Label:nth-child(3)">
+        <Style Selector="^ Grid Label.duration">
             <Setter Property="FontWeight" Value="Normal" />
+            <Setter Property="VerticalAlignment" Value="Bottom" />
+        </Style>
+
+        <Style Selector="^ Grid PathIcon.icon">
+            <Setter Property="HorizontalAlignment" Value="Left" />
+            <Setter Property="Margin" Value="10" />
         </Style>
 
         <Style Selector="^ Grid StackPanel">
@@ -149,7 +155,7 @@
     <Style Selector="Button.playlist">
         <Setter Property="HorizontalAlignment" Value="Stretch" />
         <Setter Property="Padding" Value="0" />
-        <Setter Property="Height" Value="50" />
+        <Setter Property="Height" Value="75" />
         <Setter Property="CornerRadius" Value="20 10 10 20" />
 
         <Style Selector="^ Border">
@@ -157,12 +163,17 @@
             <Setter Property="CornerRadius" Value="10 0 0 10"></Setter>
         </Style>
 
-        <Style Selector="^ Grid Label:nth-child(1)">
+        <Style Selector="^ Grid Label.title">
             <Setter Property="FontWeight" Value="Bold" />
         </Style>
 
-        <Style Selector="^ Grid Label:nth-child(2)">
+        <Style Selector="^ Grid Label.owner">
             <Setter Property="FontWeight" Value="Normal" />
+        </Style>
+
+        <Style Selector="^ Grid PathIcon.icon">
+            <Setter Property="HorizontalAlignment" Value="Left" />
+            <Setter Property="Margin" Value="10" />
         </Style>
 
         <Style Selector="^ Grid StackPanel">

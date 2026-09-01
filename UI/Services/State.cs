@@ -12,6 +12,7 @@ using Infrastructure;
 using Infrastructure.MediaPlayer;
 using UI.Models;
 using UI.ViewModels.Models;
+using PlaylistBinding = UI.Models.PlaylistBinding;
 
 namespace UI.Services;
 
