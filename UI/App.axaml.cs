@@ -32,10 +32,14 @@ public partial class App : Application
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             var mainViewModel = Services.GetRequiredService<MainViewModel>();
-            desktop.MainWindow = new Views.MainView()
+            var state = Services.GetRequiredService<State>();
+            
+            state.mainView = new Views.MainView()
             {
                 DataContext = mainViewModel
             };
+            
+            desktop.MainWindow = state.mainView;
             mainViewModel.Load();
         }
 

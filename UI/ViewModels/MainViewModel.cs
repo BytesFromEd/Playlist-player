@@ -4,14 +4,15 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Avalonia;
+using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Core.Models;
 using Infrastructure;
 using Infrastructure.MediaPlayer;
 using UI.Services;
-using UI.ViewModels.Models;
 using PlaylistBinding = UI.Models.PlaylistBinding;
 
 
@@ -131,6 +132,7 @@ public partial class MainViewModel : ViewModelBase
         //player.OnStopped += (_, args) => { Console.WriteLine("ON MAIN"); }; //to fix
     }
 
+    // ReSharper disable once UnusedParameterInPartialMethod
     partial void OnProgressChanged(long value)
     {
         Time = player?.GetProgress() ?? string.Empty;
@@ -273,9 +275,7 @@ public partial class MainViewModel : ViewModelBase
     {
         if (!string.IsNullOrEmpty(Url) && !string.IsNullOrWhiteSpace(Url))
         {
-            State.Tasks =
-            [
-                .. State.Tasks.Where(x => x is { IsCanceled: false, IsCompleted: false }),
+            State.AddTask(
                 Task.Run(async () =>
                 {
                     try
@@ -293,13 +293,24 @@ public partial class MainViewModel : ViewModelBase
                         Message = e.Message;
                     }
                 })
-            ];
+            );
         }
+    }
+
+    [RelayCommand]
+    private void DeletePlaylist(Playlist playlist)
+    {
+        if (State.mainView == null)
+            return;
+
+        var message = $"Delete songs from playlist {playlist.GetId()} ({playlist.GetName()})?";
+
+        State.mainView.OnTogglePopup(this, new RoutedEventArgs());
     }
 
     public void Load()
     {
-        State.Tasks.Add(State.Services.Initialize(State.Cts.Token));
+        State.AddTask(State.Services.Initialize(State.Cts.Token));
     }
 
     public void Closing()

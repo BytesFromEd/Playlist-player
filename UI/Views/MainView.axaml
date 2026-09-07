@@ -7,7 +7,8 @@
         mc:Ignorable="d" d:DesignWidth="1920" d:DesignHeight="1000"
         x:Class="UI.Views.MainView"
         x:DataType="vm:MainViewModel"
-        Title="UI">
+        Title="UI"
+        x:Name="PopupArea">
 
     <Design.DataContext>
         <designModels:MainViewModelDesign></designModels:MainViewModelDesign>
@@ -79,6 +80,15 @@
                                                     </Grid>
                                                 </Grid>
                                             </Grid>
+                                            
+                                            <Button.ContextMenu>
+                                                <ContextMenu>
+                                                    <!-- ReSharper disable once Xaml.PossibleNullReferenceException -->
+                                                    <MenuItem Header="Delete playlist"
+                                                              Command="{Binding #PopupArea.((vm:MainViewModel)DataContext).DeletePlaylistCommand}"
+                                                              CommandParameter="{Binding Playlist}"/>
+                                                </ContextMenu>
+                                            </Button.ContextMenu>
                                         </Button>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
@@ -98,7 +108,7 @@
                 <Separator Grid.Column="1" Classes="vertical" />
             </Grid>
 
-            <ContentControl Grid.Column="1" Content="{Binding CurrentViewModel}" x:Name="PopupArea" />
+            <ContentControl Grid.Column="1" Content="{Binding CurrentViewModel}" />
         </Grid>
 
         <Grid Grid.Row="1" Classes="top">

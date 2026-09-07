@@ -1,4 +1,5 @@
-﻿using Infrastructure.Services.Storage;
+﻿using Core.Models;
+using Infrastructure.Services.Storage;
 using Infrastructure.Services.Ytdlp;
 using Playlist = Core.Models.Playlist;
 
@@ -39,7 +40,7 @@ public class Services
         {
             return null;
         }
-        
+
         var playlist = await ytdlpWrapper.GetPlaylist(url, ct);
         if (ct.IsCancellationRequested)
         {
@@ -59,7 +60,7 @@ public class Services
         {
             return null;
         }
-        
+
         var temp = await ytdlpWrapper.RefreshPlaylist(playlist, ct);
         if (ct.IsCancellationRequested)
         {
@@ -88,5 +89,15 @@ public class Services
     public bool PlaylistExists(string id)
     {
         return Database.PlaylistExists(id);
+    }
+
+    public void RemovePlaylist(Playlist playlist, bool removeSongs)
+    {
+        Database.RemovePlaylist(playlist, removeSongs);
+    }
+
+    public void RemoveSongs(params List<Song> songs)
+    {
+        Database.RemoveSongs(songs);
     }
 }

@@ -27,11 +27,7 @@ public partial class PlaylistViewModel : ViewModelBase
         if (song == State.CurrentSong) return;
 
         State.CurrentSong = song;
-        State.Tasks =
-        [
-            .. State.Tasks.Where(x => x is { IsCanceled: false, IsCompleted: false }),
-            Task.Run(() => { State.CurrentPlaylist?.QueueManager.SetIndex(song.Song); })
-        ];
+        State.AddTask(Task.Run(() => { State.CurrentPlaylist?.QueueManager.SetIndex(song.Song); }));
     }
 
     [RelayCommand]
@@ -39,9 +35,7 @@ public partial class PlaylistViewModel : ViewModelBase
     {
         if (State.CurrentPlaylist == null || State.IsRefreshing) return;
         State.IsRefreshing = true;
-        State.Tasks =
-        [
-            .. State.Tasks.Where(x => x is { IsCanceled: false, IsCompleted: false }),
+        State.AddTask(
             Task.Run(async () =>
             {
                 var temp = await State.Services.RefreshPlaylist(State.CurrentPlaylist.Playlist, State.Cts.Token);
@@ -50,20 +44,18 @@ public partial class PlaylistViewModel : ViewModelBase
                 {
                     State.CurrentPlaylist = State.ToBinding(temp);
                 }
-                
+
                 OnMessage?.Invoke(this, new MessageArgs("Refresh done"));
                 State.IsRefreshing = false;
             })
-        ];
+        );
     }
 
     [RelayCommand]
     private void Shuffle()
     {
         if (State.CurrentPlaylist == null) return;
-        State.Tasks =
-        [
-            .. State.Tasks.Where(x => x is { IsCanceled: false, IsCompleted: false }),
+        State.AddTask(
             Task.Run(() =>
             {
                 State.CurrentPlaylist.QueueManager.Shuffle();
@@ -71,7 +63,8 @@ public partial class PlaylistViewModel : ViewModelBase
                     .. State.CurrentPlaylist.QueueManager.GetSongs().Select(State.ToBinding)
                 ]);
                 State.CurrentSong = State.Songs.First();
+                return Task.CompletedTask;
             })
-        ];
+        );
     }
 }

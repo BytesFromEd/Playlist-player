@@ -11,7 +11,7 @@ using Core.Models;
 using Infrastructure;
 using Infrastructure.MediaPlayer;
 using UI.Models;
-using UI.ViewModels.Models;
+using UI.Views;
 using PlaylistBinding = UI.Models.PlaylistBinding;
 
 namespace UI.Services;
@@ -23,6 +23,8 @@ public partial class State : ObservableObject
     [ObservableProperty] public partial SongBinding? CurrentSong { get; set; }
     [ObservableProperty] public partial PlaylistBinding? CurrentPlaylist { get; set; }
     [ObservableProperty] public partial bool IsRefreshing { get; set; } = false;
+
+    public MainView? mainView = null;
 
     public List<Task> Tasks = [];
     public readonly AppSettings AppSettings = new();
@@ -36,37 +38,33 @@ public partial class State : ObservableObject
         if (newValue?.Id == null || (newValue.Id == oldValue?.Id && !IsRefreshing))
             return;
 
-        Tasks =
-        [
-            .. Tasks.Where(x => x is { IsCanceled: false, IsCompleted: false }),
-            Task.Run(() =>
+        AddTask(Task.Run(() =>
+        {
+            Playlists = [.. Playlists?.Select(x => x.Id == newValue.Id ? newValue : x) ?? []];
+
+            oldValue?.IsSelected = false;
+            newValue.IsSelected = true;
+
+            var fullPlaylist = Services.GetPlaylist(newValue.Id);
+            if (CurrentPlaylist == null)
             {
-                Playlists = [.. Playlists?.Select(x => x.Id == newValue.Id ? newValue : x) ?? []];
+                CurrentPlaylist = ToBinding(fullPlaylist);
+            }
+            else
+            {
+                CurrentPlaylist.Playlist = fullPlaylist;
+                CurrentPlaylist.QueueManager = new QueueManager(fullPlaylist);
+            }
 
-                oldValue?.IsSelected = false;
-                newValue.IsSelected = true;
+            var songs = CurrentPlaylist.QueueManager.GetSongs().Select(ToBinding).ToList();
 
-                var fullPlaylist = Services.GetPlaylist(newValue.Id);
-                if (CurrentPlaylist == null)
-                {
-                    CurrentPlaylist = ToBinding(fullPlaylist);
-                }
-                else
-                {
-                    CurrentPlaylist.Playlist = fullPlaylist;
-                    CurrentPlaylist.QueueManager = new QueueManager(fullPlaylist);
-                }
+            Songs = new ObservableCollection<SongBinding>(songs);
+            if (Songs.Count <= 0) return;
 
-                var songs = CurrentPlaylist.QueueManager.GetSongs().Select(ToBinding).ToList();
-
-                Songs = new ObservableCollection<SongBinding>(songs);
-                if (Songs.Count <= 0) return;
-
-                CurrentSong?.IsSelected = false;
-                CurrentSong = Songs.First();
-                CurrentSong.IsSelected = true;
-            })
-        ];
+            CurrentSong?.IsSelected = false;
+            CurrentSong = Songs.First();
+            CurrentSong.IsSelected = true;
+        }));
     }
 
     partial void OnCurrentSongChanged(SongBinding? oldValue, SongBinding? newValue)
@@ -98,5 +96,17 @@ public partial class State : ObservableObject
         var duration = $"{min:00}:{sec:00}";
 
         return new SongBinding(song, image, duration);
+    }
+
+    public void AddTask(Task task)
+    {
+        lock (Tasks)
+        {
+            Tasks =
+            [
+                .. Tasks.Where(x => x is { IsCanceled: false, IsCompleted: false }),
+                task
+            ];
+        }
     }
 }

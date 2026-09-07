@@ -187,7 +187,43 @@ internal abstract class Database
     }
 
 
-    public static void RemoveSongs(string playlist, params List<Song> songs)
+    public static void RemoveSongsLink(string? playlist, params List<Song> songs)
+    {
+        if (playlist == null && songs.Count == 0)
+            throw new ArgumentException("When playlist is null songs cannot be empty");
+
+        using var conn = DbConnection();
+        conn.Open();
+
+        var songIds = songs.Select(s => s.GetId()).ToList();
+        var paramNames = songIds.Select((_, i) => $"@song{i}").ToList();
+
+        /*
+         * If playlist = null
+         *      remove songs in songs
+         * else if songs not empty
+         *          remove all songs linked to playlist.id that aren't in songs
+         *      else
+         *          remove all songs linked to playlist.id
+         */
+        var sql = playlist == null
+            ? $"DELETE FROM Song_Playlist WHERE song_id IN ({string.Join(",", paramNames)});"
+            : (songs.Count > 0
+                ? $"DELETE FROM Song_Playlist WHERE playlist_id = @playlist AND song_id NOT IN ({string.Join(",", paramNames)});"
+                : $"DELETE FROM Song_Playlist WHERE playlist_id = @playlist");
+
+        using var cmd = new SQLiteCommand(sql, conn);
+        if (playlist != null)
+            cmd.Parameters.AddWithValue("@playlist", playlist);
+        for (var i = 0; i < songIds.Count; i++)
+        {
+            cmd.Parameters.AddWithValue(paramNames[i], songIds[i]);
+        }
+
+        cmd.ExecuteNonQuery();
+    }
+
+    public static void RemoveSongs(params List<Song> songs)
     {
         using var conn = DbConnection();
         conn.Open();
@@ -195,18 +231,18 @@ internal abstract class Database
         var songIds = songs.Select(s => s.GetId()).ToList();
         var paramNames = songIds.Select((_, i) => $"@song{i}").ToList();
 
-        var sql = songs.Count > 0
-            ? $"DELETE FROM Song_Playlist WHERE playlist_id = @playlist AND song_id NOT IN ({string.Join(",", paramNames)});"
-            : $"DELETE FROM Song_Playlist WHERE playlist_id = @playlist";
-
+        var sql =
+            $"DELETE FROM Songs WHERE id IN ({string.Join(",", paramNames)}) AND EXISTS(SELECT 1 FROM Song_Playlist GROUP BY song_id HAVING COUNT(*) = 0);";
         using var cmd = new SQLiteCommand(sql, conn);
-        cmd.Parameters.AddWithValue("@playlist", playlist);
+
         for (var i = 0; i < songIds.Count; i++)
         {
             cmd.Parameters.AddWithValue(paramNames[i], songIds[i]);
         }
 
         cmd.ExecuteNonQuery();
+
+        RemoveSongsLink(null, songs);
     }
 
     public static void AddPlaylist(Playlist playlist)
@@ -247,6 +283,23 @@ internal abstract class Database
         cmd.ExecuteNonQuery();
 
         AddSongs(playlist.GetId(), playlist.GetSongs());
-        RemoveSongs(playlist.GetId(), playlist.GetSongs());
+        RemoveSongsLink(playlist.GetId(), playlist.GetSongs());
+    }
+
+    public static void RemovePlaylist(Playlist playlist, bool removeSongs)
+    {
+        using var conn = DbConnection();
+        conn.Open();
+        using var cmd =
+            new SQLiteCommand(
+                "DELETE FROM Playlists WHERE id=@id",
+                conn);
+        cmd.Parameters.AddWithValue("@id", playlist.GetId());
+        cmd.ExecuteNonQuery();
+        RemoveSongsLink(playlist.GetId(), playlist.GetSongs());
+        if (removeSongs)
+        {
+            RemoveSongs(playlist.GetSongs());
+        }
     }
 }

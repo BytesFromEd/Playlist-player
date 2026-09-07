@@ -22,7 +22,7 @@ public partial class MainView : Window
         };
     }
 
-    private void OnTogglePopup(object sender, RoutedEventArgs e)
+    public void OnTogglePopup(object sender, RoutedEventArgs e)
     {
         PlaylistPopup.IsOpen = !PlaylistPopup.IsOpen;
     }
