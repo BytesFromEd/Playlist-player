@@ -34,6 +34,7 @@ internal sealed class WindowsAudioOutput : IAudioOutput
     public void Init(IWaveProvider source)
     {
         player.Init(source);
+        player.Volume = Volume;
     }
 
     public void Play()

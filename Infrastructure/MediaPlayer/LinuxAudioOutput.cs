@@ -16,7 +16,7 @@ internal sealed class LinuxAudioOutput : IAudioOutput
         }
 
         player = new AlsaOut();
-        
+
 
         player.PlaybackStopped += (sender, args) => { OnStopped?.Invoke(sender, args); };
     }
@@ -27,7 +27,7 @@ internal sealed class LinuxAudioOutput : IAudioOutput
     public void Init(IWaveProvider source)
     {
         player.Init(source);
-        player.Volume = volume ?? 1;
+        player.Volume = Volume;
     }
 
     public void Play()
@@ -54,8 +54,10 @@ internal sealed class LinuxAudioOutput : IAudioOutput
             {
                 Muted = false;
             }
-
-            player.Volume = value;
+            else
+            {
+                player.Volume = value;
+            }
         }
     }
 
@@ -64,9 +66,9 @@ internal sealed class LinuxAudioOutput : IAudioOutput
         get => player.Volume == 0;
         set
         {
-            if (value)
+            if (!value)
             {
-                player.Volume = volume ?? 1;
+                Volume = volume ?? 1;
             }
             else
             {
