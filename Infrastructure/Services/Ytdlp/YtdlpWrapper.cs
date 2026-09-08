@@ -153,7 +153,7 @@ internal class YtdlpWrapper : IDownloadService, IPlaylistProvider
         }
     }
 
-    private async Task<Core.Models.Playlist?> PlaylistSetter(string url, string id, CancellationToken ct)
+    private async Task<Core.Models.Playlist?> PlaylistGetter(string url, string id, CancellationToken ct)
     {
         if (url.Contains("music.")) url = url.Replace("music.", "");
         ProcessResult result;
@@ -247,14 +247,14 @@ internal class YtdlpWrapper : IDownloadService, IPlaylistProvider
             rawPlaylist?.Uploader ?? "ERROR",
             id,
             Provider.Youtube,
-            thumbnailUrl != null ? Path.Combine(thumbnailOutFolder, id + ".jpg") : null,
+            thumbnailUrl != null ? id + ".jpg" : null,
             rawPlaylist?
                 .Entries?
                 .Select(x => new Song(x.Id ?? "ERROR ID",
                     x.Title ?? "ERROR TITLE",
                     x.Uploader ?? "ERROR UPLOADER",
-                    x.Id != null ? (x.Id + ".mp3") : "ERROR ID",
-                    x.Id != null ? (x.Id + ".webp") : "ERROR ID",
+                    x.Id != null ? x.Id + ".mp3" : "ERROR ID",
+                    x.Id != null ? x.Id + ".webp" : "ERROR ID",
                     (int)Math.Floor(x.Duration ?? -1),
                     DateTime.Now,
                     Provider.Youtube))
@@ -284,7 +284,7 @@ internal class YtdlpWrapper : IDownloadService, IPlaylistProvider
             throw new DuplicateNameException("Playlist already exists");
         }
 
-        var playlist = await PlaylistSetter(url, id, ct);
+        var playlist = await PlaylistGetter(url, id, ct);
 
         if (playlist == null)
             throw new Exception("Playlist not found");
@@ -296,7 +296,7 @@ internal class YtdlpWrapper : IDownloadService, IPlaylistProvider
 
     public async Task<Core.Models.Playlist?> RefreshPlaylist(Core.Models.Playlist playlist, CancellationToken ct)
     {
-        var temp = await PlaylistSetter($"https://youtube.com/watch?list={playlist.GetId()}", playlist.GetId(), ct);
+        var temp = await PlaylistGetter($"https://youtube.com/watch?list={playlist.GetId()}", playlist.GetId(), ct);
 
         if (temp == null)
             throw new Exception("Playlist not found");

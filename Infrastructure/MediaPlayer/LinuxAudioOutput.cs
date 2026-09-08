@@ -27,6 +27,7 @@ internal sealed class LinuxAudioOutput : IAudioOutput
     public void Init(IWaveProvider source)
     {
         player.Init(source);
+        player.Volume = volume ?? 1;
     }
 
     public void Play()
