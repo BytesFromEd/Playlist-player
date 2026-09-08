@@ -83,7 +83,7 @@ public partial class State : ObservableObject
     {
         return playlist.GetThumbanil() == null
             ? new PlaylistBinding(playlist, null)
-            : new PlaylistBinding(playlist, new Bitmap(Path.Combine(AppSettings.AppFolder, playlist.GetThumbanil()!)));
+            : new PlaylistBinding(playlist, new Bitmap(Path.Combine(AppSettings.AppFolder, "thumbnails", playlist.GetThumbanil()!)));
     }
 
     internal SongBinding ToBinding(Song song)
