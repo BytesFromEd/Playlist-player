@@ -251,6 +251,8 @@ public partial class MainViewModel : ViewModelBase
         switch (parameter)
         {
             case string page:
+                State?.CurrentPlaylist?.IsSelected = false;
+                
                 CurrentViewModel = page switch
                 {
                     "settings" => settingsViewModel,
@@ -265,7 +267,8 @@ public partial class MainViewModel : ViewModelBase
 
                 State.CurrentPlaylist = playlist;
                 CurrentViewModel = playlistViewModel;
-
+                State.CurrentPlaylist.IsSelected = true;
+                
                 break;
         }
     }

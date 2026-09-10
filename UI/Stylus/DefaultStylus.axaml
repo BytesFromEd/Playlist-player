@@ -12,10 +12,77 @@
     <Design.PreviewWith>
         <Border Padding="20">
             <!-- components -->
+            <TabControl>
+                <TabItem Header="General">
+                    <Border>
+                        <ScrollViewer>
+                            <StackPanel>
+                                <TextBlock>General...</TextBlock>
+                                <TextBlock>General...</TextBlock>
+                                <TextBlock>General...</TextBlock>
+                                <TextBlock>General...</TextBlock>
+                                <TextBlock>General...</TextBlock>
+                                <TextBlock>General...</TextBlock>
+                                <TextBlock>General...</TextBlock>
+                                <TextBlock>General...</TextBlock>
+                                <TextBlock>General...</TextBlock>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Border>
+                </TabItem>
+                <TabItem Header="Youtube">
+                    <TextBlock>Youtube...</TextBlock>
+                </TabItem>
+            </TabControl>
         </Border>
     </Design.PreviewWith>
 
     <!-- Add Styles Here -->
+    <Style Selector="TabItem:selected /template/ Border#PART_SelectedPipe">
+        <Setter Property="IsVisible" Value="False" />
+    </Style>
+
+    <Style Selector="TabControl">
+        <Setter Property="VerticalAlignment" Value="Stretch" />
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+
+        <Style Selector="^ TabItem /template/ ContentPresenter">
+            <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
+            <Setter Property="Foreground" Value="{StaticResource TextMutedBrush}" />
+            <Setter Property="Padding" Value="10" />
+            <Setter Property="CornerRadius" Value="5" />
+        </Style>
+
+        <Style Selector="^ TabItem:selected /template/ ContentPresenter">
+            <Setter Property="Background" Value="{StaticResource PrimaryBrush}" />
+            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+            <Setter Property="FontWeight" Value="550" />
+        </Style>
+
+        <Style Selector="^ TabItem:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="{StaticResource PrimaryLightBrush}" />
+            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+        </Style>
+
+        <Style Selector="^ Border">
+            <Setter Property="Padding" Value="10" />
+            <Setter Property="Margin" Value="5" />
+            <Setter Property="CornerRadius" Value="5" />
+            <Setter Property="BorderThickness" Value="0" />
+
+            <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
+        </Style>
+
+        <Style Selector="^ ScrollViewer">
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="VerticalAlignment" Value="Stretch" />
+        </Style>
+
+        <Style Selector="^ StackPanel">
+            <Setter Property="Spacing" Value="5" />
+        </Style>
+    </Style>
+
     <Style Selector="Window">
         <Setter Property="Background" Value="{StaticResource BackgroundColor}" />
         <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
@@ -44,19 +111,24 @@
     <Style Selector="Slider:horizontal">
         <Setter Property="Background" Value="{StaticResource TextMutedBrush}" />
         <Setter Property="Foreground" Value="{StaticResource PrimaryBrush}" />
+        <!--
         <Setter Property="Height" Value="17" />
         <Setter Property="VerticalAlignment" Value="Center" />
-
+-->
         <Style Selector="^ Track">
             <Style Selector="^ RepeatButton Border">
+                <!--
                 <Setter Property="CornerRadius" Value="0" />
                 <Setter Property="Height" Value="5" />
+                -->
             </Style>
 
             <Style Selector="^ Thumb">
+                <!--
                 <Setter Property="Height" Value="10" />
                 <Setter Property="Width" Value="10" />
                 <Setter Property="BorderThickness" Value="0" />
+                -->
                 <Setter Property="Background" Value="{StaticResource PrimaryLightBrush}" />
             </Style>
         </Style>
