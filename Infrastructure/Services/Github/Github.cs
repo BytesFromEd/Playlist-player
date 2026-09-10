@@ -39,7 +39,7 @@ internal static class Github
 
         await stream.CopyToAsync(file);
 
-        return filename;
+        return asset.Name;
     }
 
     public static async Task<string> GetLatestReleaseVersionAsync(string owner, string repo, HttpClient httpClient)

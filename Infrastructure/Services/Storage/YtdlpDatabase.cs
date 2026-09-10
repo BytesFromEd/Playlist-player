@@ -11,23 +11,49 @@ internal abstract class YtdlpDatabase : Database
         conn.Open();
         using var cmd =
             new SQLiteCommand(
-                "CREATE TABLE IF NOT EXISTS `yt-dlp` (`version` TEXT not null, `filename` TEXT not null);", conn);
+                "CREATE TABLE IF NOT EXISTS `yt-dlp` (`version` TEXT not null, `filename` TEXT not null);" +
+                "CREATE TABLE IF NOT EXISTS `ffmpeg` (`version` TEXT not null);" +
+                "CREATE TABLE IF NOT EXISTS `deno` (`version` TEXT not null);", conn);
         cmd.ExecuteNonQuery();
+
+        var sql = "";
 
         try
         {
-            GetVersion();
+            GetVersionYtdlp();
         }
         catch
         {
-            using var conn2 = DbConnection();
-            conn2.Open();
-            using var cmd2 = new SQLiteCommand("INSERT INTO `yt-dlp`(version, filename) VALUES('xx', 'xx')", conn2);
-            cmd2.ExecuteNonQuery();
+            sql += "INSERT INTO `yt-dlp`(version, filename) VALUES('xx', 'xx');";
         }
+
+        try
+        {
+            GetVersionFfmpeg();
+        }
+        catch
+        {
+            sql += "INSERT INTO `ffmpeg`(version) VALUES('xx');";
+        }
+
+        try
+        {
+            GetVersionDeno();
+        }
+        catch
+        {
+            sql += "INSERT INTO `deno`(version) VALUES('xx');";
+        }
+
+        using var conn2 = DbConnection();
+        conn2.Open();
+        using var cmd2 = new SQLiteCommand(sql, conn2);
+        cmd2.ExecuteNonQuery();
     }
 
-    public static string GetVersion()
+    #region yt-dlp
+
+    public static string GetVersionYtdlp()
     {
         using var conn = DbConnection();
         conn.Open();
@@ -38,7 +64,7 @@ internal abstract class YtdlpDatabase : Database
         return reader.GetString("VERSION");
     }
 
-    public static string GetFilename()
+    public static string GetFilenameYtdlp()
     {
         using var conn = DbConnection();
         conn.Open();
@@ -49,29 +75,79 @@ internal abstract class YtdlpDatabase : Database
         return reader.GetString("FILENAME");
     }
 
-    public static bool SetVersion(string version)
+    public static void SetVersionYtdlp(string version)
     {
-        if (GetVersion() == version) return false;
+        if (GetVersionYtdlp() == version) return;
 
         using var conn = DbConnection();
         conn.Open();
         using var cmd = new SQLiteCommand("UPDATE `yt-dlp` SET VERSION = @version", conn);
         cmd.Parameters.AddWithValue("@version", version);
         cmd.ExecuteNonQuery();
-
-        return true;
     }
 
-    public static bool SetFilename(string filename)
+    public static void SetFilenameYtdlp(string filename)
     {
-        if (GetFilename() == filename) return false;
+        if (GetFilenameYtdlp() == filename) return;
 
         using var conn = DbConnection();
         conn.Open();
         using var cmd = new SQLiteCommand("UPDATE `yt-dlp` SET filename = @filename", conn);
         cmd.Parameters.AddWithValue("@filename", filename);
         cmd.ExecuteNonQuery();
-
-        return true;
     }
+
+    #endregion
+
+    #region ffmpeg
+
+    public static string GetVersionFfmpeg()
+    {
+        using var conn = DbConnection();
+        conn.Open();
+        using var cmd = new SQLiteCommand("SELECT VERSION FROM `ffmpeg` LIMIT 1", conn);
+        using var reader = cmd.ExecuteReader();
+
+        reader.Read();
+        return reader.GetString("VERSION");
+    }
+
+    public static void SetVersionFfmpeg(string version)
+    {
+        if (GetVersionFfmpeg() == version) return;
+
+        using var conn = DbConnection();
+        conn.Open();
+        using var cmd = new SQLiteCommand("UPDATE `ffmpeg` SET VERSION = @version", conn);
+        cmd.Parameters.AddWithValue("@version", version);
+        cmd.ExecuteNonQuery();
+    }
+
+    #endregion
+
+    #region deno
+
+    public static string GetVersionDeno()
+    {
+        using var conn = DbConnection();
+        conn.Open();
+        using var cmd = new SQLiteCommand("SELECT VERSION FROM `deno` LIMIT 1", conn);
+        using var reader = cmd.ExecuteReader();
+
+        reader.Read();
+        return reader.GetString("VERSION");
+    }
+
+    public static void SetVersionDeno(string version)
+    {
+        if (GetVersionDeno() == version) return;
+
+        using var conn = DbConnection();
+        conn.Open();
+        using var cmd = new SQLiteCommand("UPDATE `deno` SET VERSION = @version", conn);
+        cmd.Parameters.AddWithValue("@version", version);
+        cmd.ExecuteNonQuery();
+    }
+
+    #endregion
 }

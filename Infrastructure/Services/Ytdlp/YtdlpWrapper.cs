@@ -1,4 +1,5 @@
 ﻿using System.Data;
+using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Core.Interfaces;
@@ -7,21 +8,26 @@ using Core.Models.Enums;
 using Infrastructure.Services.Storage;
 using ManuHub.Ytdlp.NET;
 using ManuHub.Ytdlp.NET.Core;
+using SharpCompress.Archives;
+using SharpCompress.Common;
+using SharpCompress.Readers;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Processing;
 using Playlist = Infrastructure.Services.Ytdlp.YtdlpJsonClasses.Playlist;
 
 namespace Infrastructure.Services.Ytdlp;
 
-internal class YtdlpWrapper : IDownloadService, IPlaylistProvider
+internal partial class YtdlpWrapper : IDownloadService, IPlaylistProvider
 {
     private readonly HttpClient client;
-    private readonly ManuHub.Ytdlp.NET.Ytdlp ytdlp;
+    private ManuHub.Ytdlp.NET.Ytdlp ytdlp;
     public event EventHandler<ServiceEventArgs>? OnYtdlpMessages;
     public event EventHandler<DownloadProgressEventArgs>? OnYtdlpDownloadProgress;
 
     private readonly JsonSerializerOptions options;
 
+    private readonly string toolsOutFolder = Path.Combine(AppSettings.GetInstance().AppFolder, "./tools");
+    private readonly string tempOutFolder = Path.Combine(AppSettings.GetInstance().AppFolder, "./temp");
     private readonly string songsOutFolder = Path.Combine(AppSettings.GetInstance().AppFolder, "./songs");
     private readonly string thumbnailOutFolder = Path.Combine(AppSettings.GetInstance().AppFolder, "./thumbnails");
 
@@ -33,23 +39,25 @@ internal class YtdlpWrapper : IDownloadService, IPlaylistProvider
 
         YtdlpDatabase.CreateTable();
 
+        if (AppSettings.GetInstance().Youtube.DownloadTools)
+        {
+            DownloadTools()
+                .GetAwaiter()
+                .GetResult();
+        }
+
         var outputPath = Path.GetFullPath(songsOutFolder);
 
         var executable = 0 switch
         {
-            _ when OperatingSystem.IsWindows() => "yt-dlp.exe",
-            _ when OperatingSystem.IsLinux() => "yt-dlp",
+            _ when OperatingSystem.IsWindows() && !AppSettings.GetInstance().Youtube.DownloadTools => "yt-dlp.exe",
+            _ when OperatingSystem.IsLinux() && !AppSettings.GetInstance().Youtube.DownloadTools => "yt-dlp",
+            _ when AppSettings.GetInstance().Youtube.DownloadTools => Path.Combine(toolsOutFolder,
+                YtdlpDatabase.GetFilenameYtdlp()),
             _ => throw new PlatformNotSupportedException()
         };
 
-        ytdlp = new ManuHub.Ytdlp.NET.Ytdlp(executable)
-                .WithExtractAudio(AudioFormat.Mp3)
-                .WithOutputFolder(outputPath)
-                .WithThumbnails()
-                .WithOutputTemplate("%(id)s.%(ext)s")
-                .WithCookiesFile(Path.Combine(AppSettings.GetInstance().AppFolder, "cookies.txt"))
-                .AddOption("--extractor-args", "youtube:player_client=default,web_embedded")
-            ;
+        ytdlp = GetTool(executable, AppSettings.GetInstance().AppFolder);
 
         if (Path.Exists(outputPath))
         {
@@ -71,8 +79,36 @@ internal class YtdlpWrapper : IDownloadService, IPlaylistProvider
             PropertyNameCaseInsensitive = true
         };
 
-        removeVideo = new Regex(@"&?v=[a-zA-Z0-9_-]+&?");
+        removeVideo = RemoveVideoRegex();
     }
+
+    private static ManuHub.Ytdlp.NET.Ytdlp GetTool(string executable, string root)
+    {
+        var temp = new ManuHub.Ytdlp.NET.Ytdlp(executable)
+                .WithExtractAudio(AudioFormat.Mp3)
+                .WithOutputFolder(Path.Combine(root, "songs"))
+                .WithTempFolder(Path.Combine(root, "temp"))
+                .WithThumbnails()
+                .WithOutputTemplate("%(id)s.%(ext)s")
+                .AddOption("--extractor-args", "youtube:player_client=default,web_embedded")
+            ;
+
+        if (AppSettings.GetInstance().Youtube.UseCookie)
+        {
+            temp = temp.WithCookiesFile(Path.Combine(AppSettings.GetInstance().AppFolder, "cookies.txt"));
+        }
+
+        if (AppSettings.GetInstance().Youtube.DownloadTools)
+        {
+            temp = temp.WithFFmpegLocation(Path.Combine(root, "tools"))
+                .WithJsRuntime(Runtime.Deno, Path.Combine(root, "tools"));
+        }
+
+        return temp;
+    }
+
+    [GeneratedRegex(@"&?v=[a-zA-Z0-9_-]+&?")]
+    private static partial Regex RemoveVideoRegex();
 
     public async Task DownloadSongs(string playlist, CancellationToken ct, params List<Song> songs)
     {
@@ -195,8 +231,8 @@ internal class YtdlpWrapper : IDownloadService, IPlaylistProvider
         }
 
         Console.WriteLine("Playlist fetched information is right");
-        
-        var thumbnailUrl = rawPlaylist?.Thumbnails?.MaxBy(x => x.Id)?.Url;
+
+        var thumbnailUrl = rawPlaylist.Thumbnails?.MaxBy(x => x.Id)?.Url;
 
         if (thumbnailUrl != null)
         {
@@ -240,15 +276,15 @@ internal class YtdlpWrapper : IDownloadService, IPlaylistProvider
                 return null;
             }
         }
-        
+
         Console.WriteLine("Playlist thumbnail cropped");
 
-        var playlist = new Core.Models.Playlist(rawPlaylist?.Title ?? "ERROR",
-            rawPlaylist?.Uploader ?? "ERROR",
+        var playlist = new Core.Models.Playlist(rawPlaylist.Title ?? "ERROR",
+            rawPlaylist.Uploader ?? "ERROR",
             id,
             Provider.Youtube,
             thumbnailUrl != null ? id + ".jpg" : null,
-            rawPlaylist?
+            rawPlaylist
                 .Entries?
                 .Select(x => new Song(x.Id ?? "ERROR ID",
                     x.Title ?? "ERROR TITLE",
@@ -260,7 +296,7 @@ internal class YtdlpWrapper : IDownloadService, IPlaylistProvider
                     Provider.Youtube))
             ?? []
         );
-        
+
         Console.WriteLine("Playlist information successfully downloaded");
         return playlist;
     }
@@ -304,5 +340,149 @@ internal class YtdlpWrapper : IDownloadService, IPlaylistProvider
         Database.UpdatePlaylist(temp);
 
         return temp;
+    }
+
+    private async Task DownloadTools()
+    {
+        //yt-dlp
+        if (YtdlpDatabase.GetVersionYtdlp() == "xx")
+        {
+            var ytdlpVersion = await Github.Github.GetLatestReleaseVersionAsync("yt-dlp", "yt-dlp", client);
+            var ytdlpExe = await Github.Github.DownloadLatestReleaseAsset("yt-dlp", "yt-dlp",
+                asset =>
+                {
+                    if (OperatingSystem.IsWindows())
+                    {
+                        return RuntimeInformation.ProcessArchitecture switch
+                        {
+                            Architecture.Arm64 => asset.Name == "yt-dlp_arm64.exe",
+                            Architecture.X64 => asset.Name == "yt-dlp.exe",
+                            Architecture.X86 => asset.Name == "yt-dlp_x86.exe",
+                            _ => throw new PlatformNotSupportedException("Executable for this platform not found")
+                        };
+                    }
+
+                    if (OperatingSystem.IsLinux() || OperatingSystem.IsFreeBSD())
+                    {
+                        if (ExternalServices.IsInstalled("python"))
+                        {
+                            return asset.Name == "yt-dlp";
+                        }
+
+                        return asset.Name == "yt-dlp_linux";
+                    }
+
+                    if (OperatingSystem.IsMacOS())
+                    {
+                        return asset.Name == "yt-dlp_macos";
+                    }
+
+                    throw new PlatformNotSupportedException("Executable for this platform not found");
+                },
+                toolsOutFolder,
+                client);
+            YtdlpDatabase.SetVersionYtdlp(ytdlpVersion);
+            YtdlpDatabase.SetFilenameYtdlp(ytdlpExe);
+        }
+
+        //ffmpeg
+        if (YtdlpDatabase.GetVersionFfmpeg() == "xx")
+        {
+            var ffmpegVersion = await Github.Github.GetLatestReleaseVersionAsync("yt-dlp", "FFmpeg-Builds", client);
+            var filename = await Github.Github.DownloadLatestReleaseAsset("yt-dlp", "FFmpeg-Builds",
+                asset =>
+                {
+                    if (OperatingSystem.IsWindows())
+                    {
+                        return RuntimeInformation.ProcessArchitecture switch
+                        {
+                            Architecture.X64 => asset.Name == "ffmpeg-master-latest-win64-gpl.zip",
+                            Architecture.X86 => asset.Name == "ffmpeg-master-latest-win32-gpl.zip",
+                            _ => throw new PlatformNotSupportedException("Executable for this platform not found")
+                        };
+                    }
+
+                    if (OperatingSystem.IsLinux() || OperatingSystem.IsFreeBSD())
+                    {
+                        return RuntimeInformation.ProcessArchitecture switch
+                        {
+                            Architecture.X64 => asset.Name == "ffmpeg-master-latest-linux64-gpl.zip",
+                            Architecture.Arm64 => asset.Name == "ffmpeg-master-latest-linuxarm64-gpl.zip",
+                            _ => throw new PlatformNotSupportedException("Executable for this platform not found")
+                        };
+                    }
+
+                    throw new PlatformNotSupportedException("Executable for this platform not found");
+                },
+                tempOutFolder,
+                client);
+            ExtractFile(Path.Combine(tempOutFolder, filename), toolsOutFolder,
+                entry => entry is { IsDirectory: false, Key: not null } &&
+                         (entry.Key.EndsWith("ffmpeg" + (OperatingSystem.IsWindows() ? ".exe" : "")) ||
+                          entry.Key.EndsWith("ffprobe" + (OperatingSystem.IsWindows() ? ".exe" : "")))
+            );
+            YtdlpDatabase.SetVersionFfmpeg(ffmpegVersion);
+        }
+
+        //deno
+        if (YtdlpDatabase.GetVersionDeno() == "xx")
+        {
+            var denoVersion = await Github.Github.GetLatestReleaseVersionAsync("denoland", "deno", client);
+            var filename = await Github.Github.DownloadLatestReleaseAsset("denoland", "deno",
+                asset =>
+                {
+                    if (OperatingSystem.IsWindows())
+                    {
+                        return RuntimeInformation.ProcessArchitecture switch
+                        {
+                            Architecture.X64 or Architecture.X86 => asset.Name == "deno-x86_64-pc-windows-msvc.zip",
+                            _ => throw new PlatformNotSupportedException("Executable for this platform not found")
+                        };
+                    }
+
+                    if (OperatingSystem.IsLinux() || OperatingSystem.IsFreeBSD())
+                    {
+                        return RuntimeInformation.ProcessArchitecture switch
+                        {
+                            Architecture.X64 => asset.Name == "deno-x86_64-unknown-linux-gnu.zip",
+                            _ => throw new PlatformNotSupportedException("Executable for this platform not found")
+                        };
+                    }
+
+                    throw new PlatformNotSupportedException("Executable for this platform not found");
+                },
+                tempOutFolder,
+                client);
+            ExtractFile(Path.Combine(tempOutFolder, filename), toolsOutFolder,
+                entry => entry is { IsDirectory: false, Key: not null }
+            );
+            YtdlpDatabase.SetVersionDeno(denoVersion);
+        }
+
+        ytdlp = GetTool(Path.GetFullPath(Path.Combine(toolsOutFolder, YtdlpDatabase.GetFilenameYtdlp())),
+            AppSettings.GetInstance().AppFolder);
+    }
+
+    private static void ExtractFile(string filename, string output, Func<IArchiveEntry, bool> filter)
+    {
+        var progress = new Progress<ProgressReport>(report =>
+        {
+            Console.WriteLine($"Extracting {report.EntryPath}: {report.PercentComplete}%");
+        });
+
+        using var archive = ArchiveFactory.OpenArchive(filename, ReaderOptions.ForFilePath.WithProgress(progress));
+
+        foreach (var archiveEntry in archive.Entries.Where(filter))
+        {
+            if (archiveEntry.IsDirectory ||
+                archiveEntry.Key == null) continue;
+
+            archiveEntry.WriteToFile(Path.Combine(output, archiveEntry.Key.Split(Path.AltDirectorySeparatorChar).Last()));
+        }
+    }
+
+    public async Task UpdateTools()
+    {
+        await ytdlp.UpdateAsync();
     }
 }

@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text.Json;
+using Infrastructure.AppSettingsSections;
 
 namespace Infrastructure;
 
@@ -8,7 +9,9 @@ public class AppSettings : IDisposable
 {
     public string AppFolder { get; private set; }
     public float Volume { get; set; }
-    
+
+    public YoutubeSettings Youtube { get; set; }
+
     private static AppSettings? instance;
 
     public AppSettings()
@@ -22,15 +25,19 @@ public class AppSettings : IDisposable
 
         if (File.Exists(Path.Combine(AppFolder, "settings.json")))
         {
-            var data = JsonSerializer.Deserialize<Dictionary<string, string>>(
+            var data = JsonSerializer.Deserialize<Dictionary<string, object>>(
                 File.ReadAllText(Path.Combine(AppFolder, "settings.json"))
             )!;
 
-            Volume = float.Parse(data["Volume"], CultureInfo.InvariantCulture);
+            Volume = data.TryGetValue("Volume", out var value) ? value as float? ?? 1.0f : 1.0f;
+            Youtube = new YoutubeSettings(
+                data.TryGetValue("Youtube", out var youtube) ? youtube as Dictionary<string, object> : null
+            );
         }
         else
         {
             Volume = 1.0f;
+            Youtube = new YoutubeSettings(null);
         }
     }
 
@@ -43,9 +50,10 @@ public class AppSettings : IDisposable
     [SuppressMessage("Performance", "CA1869:Cache and reuse \'JsonSerializerOptions\' instances")]
     private void Save()
     {
-        var dic = new Dictionary<string, string>
+        var dic = new Dictionary<string, object>
         {
-            { "Volume", Volume.ToString(CultureInfo.InvariantCulture) }
+            { "Volume", Volume },
+            { "Youtube", Youtube.GetSettings() }
         };
 
         File.WriteAllText(Path.Combine(AppFolder, "settings.json"),
