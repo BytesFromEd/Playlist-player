@@ -5,6 +5,7 @@ using System.Text.RegularExpressions;
 using Core.Interfaces;
 using Core.Models;
 using Core.Models.Enums;
+using Infrastructure.Services.Github;
 using Infrastructure.Services.Storage;
 using ManuHub.Ytdlp.NET;
 using ManuHub.Ytdlp.NET.Core;
@@ -348,39 +349,9 @@ internal partial class YtdlpWrapper : IDownloadService, IPlaylistProvider
         if (YtdlpDatabase.GetVersionYtdlp() == "xx")
         {
             var ytdlpVersion = await Github.Github.GetLatestReleaseVersionAsync("yt-dlp", "yt-dlp", client);
-            var ytdlpExe = await Github.Github.DownloadLatestReleaseAsset("yt-dlp", "yt-dlp",
-                asset =>
-                {
-                    if (OperatingSystem.IsWindows())
-                    {
-                        return RuntimeInformation.ProcessArchitecture switch
-                        {
-                            Architecture.Arm64 => asset.Name == "yt-dlp_arm64.exe",
-                            Architecture.X64 => asset.Name == "yt-dlp.exe",
-                            Architecture.X86 => asset.Name == "yt-dlp_x86.exe",
-                            _ => throw new PlatformNotSupportedException("Executable for this platform not found")
-                        };
-                    }
+            var ytdlpExe =
+                await Github.Github.DownloadLatestReleaseAsset("yt-dlp", "yt-dlp", YtdlpFilter, tempOutFolder, client);
 
-                    if (OperatingSystem.IsLinux() || OperatingSystem.IsFreeBSD())
-                    {
-                        if (ExternalServices.IsInstalled("python"))
-                        {
-                            return asset.Name == "yt-dlp";
-                        }
-
-                        return asset.Name == "yt-dlp_linux";
-                    }
-
-                    if (OperatingSystem.IsMacOS())
-                    {
-                        return asset.Name == "yt-dlp_macos";
-                    }
-
-                    throw new PlatformNotSupportedException("Executable for this platform not found");
-                },
-                toolsOutFolder,
-                client);
             YtdlpDatabase.SetVersionYtdlp(ytdlpVersion);
             YtdlpDatabase.SetFilenameYtdlp(ytdlpExe);
         }
@@ -389,33 +360,10 @@ internal partial class YtdlpWrapper : IDownloadService, IPlaylistProvider
         if (YtdlpDatabase.GetVersionFfmpeg() == "xx")
         {
             var ffmpegVersion = await Github.Github.GetLatestReleaseVersionAsync("yt-dlp", "FFmpeg-Builds", client);
-            var filename = await Github.Github.DownloadLatestReleaseAsset("yt-dlp", "FFmpeg-Builds",
-                asset =>
-                {
-                    if (OperatingSystem.IsWindows())
-                    {
-                        return RuntimeInformation.ProcessArchitecture switch
-                        {
-                            Architecture.X64 => asset.Name == "ffmpeg-master-latest-win64-gpl.zip",
-                            Architecture.X86 => asset.Name == "ffmpeg-master-latest-win32-gpl.zip",
-                            _ => throw new PlatformNotSupportedException("Executable for this platform not found")
-                        };
-                    }
+            var filename =
+                await Github.Github.DownloadLatestReleaseAsset("yt-dlp", "FFmpeg-Builds", FfmpegFilter, tempOutFolder,
+                    client);
 
-                    if (OperatingSystem.IsLinux() || OperatingSystem.IsFreeBSD())
-                    {
-                        return RuntimeInformation.ProcessArchitecture switch
-                        {
-                            Architecture.X64 => asset.Name == "ffmpeg-master-latest-linux64-gpl.zip",
-                            Architecture.Arm64 => asset.Name == "ffmpeg-master-latest-linuxarm64-gpl.zip",
-                            _ => throw new PlatformNotSupportedException("Executable for this platform not found")
-                        };
-                    }
-
-                    throw new PlatformNotSupportedException("Executable for this platform not found");
-                },
-                tempOutFolder,
-                client);
             ExtractFile(Path.Combine(tempOutFolder, filename), toolsOutFolder,
                 entry => entry is { IsDirectory: false, Key: not null } &&
                          (entry.Key.EndsWith("ffmpeg" + (OperatingSystem.IsWindows() ? ".exe" : "")) ||
@@ -428,31 +376,9 @@ internal partial class YtdlpWrapper : IDownloadService, IPlaylistProvider
         if (YtdlpDatabase.GetVersionDeno() == "xx")
         {
             var denoVersion = await Github.Github.GetLatestReleaseVersionAsync("denoland", "deno", client);
-            var filename = await Github.Github.DownloadLatestReleaseAsset("denoland", "deno",
-                asset =>
-                {
-                    if (OperatingSystem.IsWindows())
-                    {
-                        return RuntimeInformation.ProcessArchitecture switch
-                        {
-                            Architecture.X64 or Architecture.X86 => asset.Name == "deno-x86_64-pc-windows-msvc.zip",
-                            _ => throw new PlatformNotSupportedException("Executable for this platform not found")
-                        };
-                    }
+            var filename =
+                await Github.Github.DownloadLatestReleaseAsset("denoland", "deno", DenoFilter, tempOutFolder, client);
 
-                    if (OperatingSystem.IsLinux() || OperatingSystem.IsFreeBSD())
-                    {
-                        return RuntimeInformation.ProcessArchitecture switch
-                        {
-                            Architecture.X64 => asset.Name == "deno-x86_64-unknown-linux-gnu.zip",
-                            _ => throw new PlatformNotSupportedException("Executable for this platform not found")
-                        };
-                    }
-
-                    throw new PlatformNotSupportedException("Executable for this platform not found");
-                },
-                tempOutFolder,
-                client);
             ExtractFile(Path.Combine(tempOutFolder, filename), toolsOutFolder,
                 entry => entry is { IsDirectory: false, Key: not null }
             );
@@ -477,12 +403,125 @@ internal partial class YtdlpWrapper : IDownloadService, IPlaylistProvider
             if (archiveEntry.IsDirectory ||
                 archiveEntry.Key == null) continue;
 
-            archiveEntry.WriteToFile(Path.Combine(output, archiveEntry.Key.Split(Path.AltDirectorySeparatorChar).Last()));
+            archiveEntry.WriteToFile(
+                Path.Combine(output, archiveEntry.Key.Split(Path.AltDirectorySeparatorChar).Last()));
         }
     }
 
     public async Task UpdateTools()
     {
-        await ytdlp.UpdateAsync();
+        if (YtdlpDatabase.GetVersionYtdlp() != "Manual")
+            await ytdlp.UpdateAsync();
+
+        var ffmpegVersion = await Github.Github.GetLatestReleaseVersionAsync("yt-dlp", "FFmpeg-Builds", client);
+        //ffmpeg
+        if (YtdlpDatabase.GetVersionFfmpeg() != "Manual" && YtdlpDatabase.GetVersionFfmpeg() != ffmpegVersion)
+        {
+            var filename =
+                await Github.Github.DownloadLatestReleaseAsset("yt-dlp", "FFmpeg-Builds", FfmpegFilter, tempOutFolder,
+                    client);
+
+            ExtractFile(Path.Combine(tempOutFolder, filename), toolsOutFolder,
+                entry => entry is { IsDirectory: false, Key: not null } &&
+                         (entry.Key.EndsWith("ffmpeg" + (OperatingSystem.IsWindows() ? ".exe" : "")) ||
+                          entry.Key.EndsWith("ffprobe" + (OperatingSystem.IsWindows() ? ".exe" : "")))
+            );
+            YtdlpDatabase.SetVersionFfmpeg(ffmpegVersion);
+        }
+
+        var denoVersion = await Github.Github.GetLatestReleaseVersionAsync("denoland", "deno", client);
+        //deno
+        if (YtdlpDatabase.GetVersionDeno() != "Manual" && YtdlpDatabase.GetVersionDeno() != denoVersion)
+        {
+            var filename =
+                await Github.Github.DownloadLatestReleaseAsset("denoland", "deno", DenoFilter, tempOutFolder, client);
+
+            ExtractFile(Path.Combine(tempOutFolder, filename), toolsOutFolder,
+                entry => entry is { IsDirectory: false, Key: not null }
+            );
+            YtdlpDatabase.SetVersionDeno(denoVersion);
+        }
+
+        ytdlp = GetTool(Path.GetFullPath(Path.Combine(toolsOutFolder, YtdlpDatabase.GetFilenameYtdlp())),
+            AppSettings.GetInstance().AppFolder);
+    }
+
+    private static bool YtdlpFilter(GithubAsset asset)
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return RuntimeInformation.ProcessArchitecture switch
+            {
+                Architecture.Arm64 => asset.Name == "yt-dlp_arm64.exe",
+                Architecture.X64 => asset.Name == "yt-dlp.exe",
+                Architecture.X86 => asset.Name == "yt-dlp_x86.exe",
+                _ => throw new PlatformNotSupportedException("Executable for this platform not found")
+            };
+        }
+
+        if (OperatingSystem.IsLinux() || OperatingSystem.IsFreeBSD())
+        {
+            if (ExternalServices.IsInstalled("python"))
+            {
+                return asset.Name == "yt-dlp";
+            }
+
+            return asset.Name == "yt-dlp_linux";
+        }
+
+        if (OperatingSystem.IsMacOS())
+        {
+            return asset.Name == "yt-dlp_macos";
+        }
+
+        throw new PlatformNotSupportedException("Executable for this platform not found");
+    }
+
+    private static bool DenoFilter(GithubAsset asset)
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return RuntimeInformation.ProcessArchitecture switch
+            {
+                Architecture.X64 or Architecture.X86 => asset.Name == "deno-x86_64-pc-windows-msvc.zip",
+                _ => throw new PlatformNotSupportedException("Executable for this platform not found")
+            };
+        }
+
+        if (OperatingSystem.IsLinux() || OperatingSystem.IsFreeBSD())
+        {
+            return RuntimeInformation.ProcessArchitecture switch
+            {
+                Architecture.X64 => asset.Name == "deno-x86_64-unknown-linux-gnu.zip",
+                _ => throw new PlatformNotSupportedException("Executable for this platform not found")
+            };
+        }
+
+        throw new PlatformNotSupportedException("Executable for this platform not found");
+    }
+
+    private static bool FfmpegFilter(GithubAsset asset)
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return RuntimeInformation.ProcessArchitecture switch
+            {
+                Architecture.X64 => asset.Name == "ffmpeg-master-latest-win64-gpl.zip",
+                Architecture.X86 => asset.Name == "ffmpeg-master-latest-win32-gpl.zip",
+                _ => throw new PlatformNotSupportedException("Executable for this platform not found")
+            };
+        }
+
+        if (OperatingSystem.IsLinux() || OperatingSystem.IsFreeBSD())
+        {
+            return RuntimeInformation.ProcessArchitecture switch
+            {
+                Architecture.X64 => asset.Name == "ffmpeg-master-latest-linux64-gpl.zip",
+                Architecture.Arm64 => asset.Name == "ffmpeg-master-latest-linuxarm64-gpl.zip",
+                _ => throw new PlatformNotSupportedException("Executable for this platform not found")
+            };
+        }
+
+        throw new PlatformNotSupportedException("Executable for this platform not found");
     }
 }

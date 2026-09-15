@@ -45,7 +45,7 @@ public partial class State : ObservableObject
             oldValue?.IsSelected = false;
             newValue.IsSelected = true;
 
-            var fullPlaylist = Services.GetPlaylist(newValue.Id);
+            var fullPlaylist = Infrastructure.Services.Services.GetPlaylist(newValue.Id);
             if (CurrentPlaylist == null)
             {
                 CurrentPlaylist = ToBinding(fullPlaylist);

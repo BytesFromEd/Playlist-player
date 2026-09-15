@@ -8,6 +8,6 @@ public class PlaylistViewModelDesign : PlaylistViewModel
 
     public PlaylistViewModelDesign() : base(State)
     {
-        State.CurrentPlaylist = State.ToBinding(State.Services.GetPlaylists()[0]);
+        State.CurrentPlaylist = State.ToBinding(Infrastructure.Services.Services.GetPlaylists()[0]);
     }
 }

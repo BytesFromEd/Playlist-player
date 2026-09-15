@@ -74,30 +74,36 @@ public class Services
         return ct.IsCancellationRequested ? null : temp;
     }
 
-    public List<Playlist> GetPlaylists()
+    public static List<Playlist> GetPlaylists()
     {
         return Database.GetPlaylists();
     }
 
-    public Playlist GetPlaylist(string id)
+    public static Playlist GetPlaylist(string id)
     {
         var playlist = Database.GetPlaylist(id);
 
         return playlist ?? throw new Exception($"Playlist {id} not found");
     }
 
-    public bool PlaylistExists(string id)
+    public static bool PlaylistExists(string id)
     {
         return Database.PlaylistExists(id);
     }
 
-    public void RemovePlaylist(Playlist playlist, bool removeSongs)
+    public static void RemovePlaylist(Playlist playlist, bool removeSongs)
     {
         Database.RemovePlaylist(playlist, removeSongs);
     }
 
-    public void RemoveSongs(params List<Song> songs)
+    public static void RemoveSongs(params List<Song> songs)
     {
         Database.RemoveSongs(songs);
+    }
+
+    public async Task UpdateTools()
+    {
+        if (ytdlpWrapper != null)
+            await ytdlpWrapper.UpdateTools();
     }
 }

@@ -68,7 +68,7 @@ public partial class MainViewModel : ViewModelBase
 
         state.Services.CreateTable();
 
-        var playlists = state.Services.GetPlaylists().Select(state.ToBinding).ToList();
+        var playlists = Infrastructure.Services.Services.GetPlaylists().Select(state.ToBinding).ToList();
         if (playlists.Count > 0)
         {
             CurrentViewModel = playlistViewModel;
