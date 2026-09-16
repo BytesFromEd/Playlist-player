@@ -8,7 +8,7 @@
         <PackageReference Include="NAudio" Version="3.1.1-preview.1" />
         <PackageReference Include="NAudio.SoundFile" Version="3.1.1-preview.1" />
         <PackageReference Include="SharpCompress" Version="0.50.4" />
-        <PackageReference Include="SixLabors.ImageSharp" Version="4.1.1" />
+        <PackageReference Include="SixLabors.ImageSharp" Version="4.1.2" />
         <PackageReference Include="SourceGear.sqlite3" Version="3.53.4"/>
         <PackageReference Include="System.Data.SQLite" Version="2.0.4"/>
         <PackageReference Include="Ytdlp.NET" Version="4.1.0"/>

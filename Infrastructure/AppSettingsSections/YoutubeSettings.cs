@@ -1,3 +1,5 @@
+using System.Text.Json;
+
 namespace Infrastructure.AppSettingsSections;
 
 public class YoutubeSettings
@@ -5,14 +7,14 @@ public class YoutubeSettings
     public bool DownloadTools { get; set; }
     public bool UseCookie { get; set; }
 
-    public YoutubeSettings(Dictionary<string, object>? settings)
+    public YoutubeSettings(JsonElement? settings)
     {
-        if (settings != null)
+        if (settings.HasValue)
         {
-            DownloadTools = !settings.TryGetValue("DownloadTools", out var downloadvalue) ||
-                            (downloadvalue as bool? ?? true);
-            UseCookie = !settings.TryGetValue("UseCookie", out var cookievalue) ||
-                        (cookievalue as bool? ?? true);
+            DownloadTools = !settings.Value.TryGetProperty(nameof(DownloadTools), out var downloadvalue) ||
+                            downloadvalue.GetBoolean();
+            UseCookie = !settings.Value.TryGetProperty(nameof(UseCookie), out var cookievalue) ||
+                        cookievalue.GetBoolean();
         }
         else
             SetDefaults();
