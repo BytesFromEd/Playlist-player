@@ -2,48 +2,12 @@ using Core.Models.Enums;
 
 namespace Core.Models;
 
-public class Playlist
+public class Playlist(string name, string owner, string id, Provider provider, string? thumbnail)
 {
-    private readonly string name;
-    private readonly string owner;
-    private readonly string id;
-    private readonly List<Song> songs;
-    private readonly Provider provider;
-    private readonly string? thumbnail;
-
-    public Playlist(string name, string owner, string id, Provider provider, string? thumbnail)
-    {
-        this.name = name;
-        this.owner = owner;
-        this.id = id;
-        this.provider = provider;
-        this.thumbnail = thumbnail;
-        songs = [];
-    }
-
-    public Playlist(string name, string owner, string id, Provider provider, string? thumbnail, IEnumerable<Song> songs)
-    {
-        this.name = name;
-        this.owner = owner;
-        this.id = id;
-        this.provider = provider;
-        this.thumbnail = thumbnail;
-        this.songs = [.. songs];
-    }
-
-    public List<Song> GetSongs()
-    {
-        return songs;
-    }
-
-    public void AddSong(Song song)
-    {
-        songs.Add(song);
-    }
-
-    public string GetName() { return name; }
-    public string GetOwner() { return owner; }
-    public string GetId() { return id; }
-    public Provider GetProvider() { return provider; }
-    public string? GetThumbanil() { return thumbnail; }
+    public string Name { get; set; } = name;
+    public string Owner { get; set; } = owner;
+    public string Id { get; set; } = id;
+    public List<Song> Songs { get; set; } = [];
+    public Provider Provider { get; set; } = provider;
+    public string? Thumbnail { get; set; } = thumbnail;
 }

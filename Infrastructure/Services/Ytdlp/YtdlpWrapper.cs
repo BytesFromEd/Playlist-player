@@ -6,9 +6,10 @@ using Core.Interfaces;
 using Core.Models;
 using Core.Models.Enums;
 using Infrastructure.Services.Github;
-using Infrastructure.Services.Storage;
+using Infrastructure.Storage;
 using ManuHub.Ytdlp.NET;
 using ManuHub.Ytdlp.NET.Core;
+using Microsoft.EntityFrameworkCore;
 using SharpCompress.Archives;
 using SharpCompress.Common;
 using SharpCompress.Readers;
@@ -38,7 +39,8 @@ internal partial class YtdlpWrapper : IDownloadService, IPlaylistProvider
     {
         this.client = client;
 
-        YtdlpDatabase.CreateTable();
+        using var database = new Database();
+
 
         if (AppSettings.GetInstance().Youtube.DownloadTools)
         {
@@ -53,8 +55,11 @@ internal partial class YtdlpWrapper : IDownloadService, IPlaylistProvider
         {
             _ when OperatingSystem.IsWindows() && !AppSettings.GetInstance().Youtube.DownloadTools => "yt-dlp.exe",
             _ when OperatingSystem.IsLinux() && !AppSettings.GetInstance().Youtube.DownloadTools => "yt-dlp",
+
             _ when AppSettings.GetInstance().Youtube.DownloadTools => Path.Combine(toolsOutFolder,
-                YtdlpDatabase.GetFilenameYtdlp()),
+                database.Tools.First(x => x.Name == "yt-dlp").Filename ??
+                throw new FileNotFoundException("yt-dlp not found")),
+
             _ => throw new PlatformNotSupportedException()
         };
 
@@ -111,83 +116,103 @@ internal partial class YtdlpWrapper : IDownloadService, IPlaylistProvider
     [GeneratedRegex(@"&?v=[a-zA-Z0-9_-]+&?")]
     private static partial Regex RemoveVideoRegex();
 
-    public async Task DownloadSongs(string playlist, CancellationToken ct, params List<Song> songs)
+    public async Task DownloadSongs(string playlistId, CancellationToken ct, params List<Song> songs)
     {
         var outputPath = Path.GetFullPath(songsOutFolder);
 
         var filesDownloaded = Directory.Exists(outputPath) ? Directory.GetFiles(outputPath, "*.mp3") : [];
 
-        var urls = songs.Where(x => !filesDownloaded.Any(y => y.Contains(x.GetId())))
-            .Select(x => $"https://www.youtube.com/watch?v={x.GetId()}").ToList();
+        var urls = songs
+            .Where(x =>
+                !filesDownloaded.Any(y => y.Contains(x.Id))
+            )
+            .Select(x => $"https://www.youtube.com/watch?v={x.Id}")
+            .ToList();
 
         if (urls.Count == 0) return;
 
-        try
+        await ytdlp.DownloadBatchAsync(urls, Math.Min(urls.Count, 3), ct);
+
+        if (ct.IsCancellationRequested)
         {
-            await ytdlp.DownloadBatchAsync(urls, 3, ct);
+            return;
+        }
+
+        filesDownloaded = [.. Directory.GetFiles(outputPath).Where(x => !x.EndsWith("mp3") && !x.EndsWith("webp"))];
+
+        foreach (var file in filesDownloaded)
+        {
+            File.Delete(file);
+            Console.WriteLine("Deleting file: " + file);
+        }
+
+
+        filesDownloaded = Directory.GetFiles(outputPath, "*.mp3");
+        // ReSharper disable once AccessToModifiedClosure
+        songs = [.. songs.Where(x => filesDownloaded.Any(y => y.Contains(x.Id)))];
+
+        filesDownloaded =
+        [
+            .. Directory.GetFiles(outputPath, "*.webp")
+                .Where(x => urls.Any(u => x.Contains(u.Split("=").Last())
+                ))
+        ];
+
+        foreach (var file in filesDownloaded)
+        {
+            if (!File.Exists(file.Replace(".webp", ".mp3"))) continue;
+            using var image = await Image.LoadAsync(file, ct);
 
             if (ct.IsCancellationRequested)
             {
                 return;
             }
 
-            filesDownloaded = [.. Directory.GetFiles(outputPath).Where(x => !x.EndsWith("mp3") && !x.EndsWith("webp"))];
-
-            foreach (var file in filesDownloaded)
+            if (image.Width != image.Height)
             {
-                File.Delete(file);
-                Console.WriteLine("Deleting file: " + file);
-            }
+                OnYtdlpMessages?.Invoke(this, new ServiceEventArgs("Cropping image: " + file));
 
-
-            filesDownloaded = Directory.GetFiles(outputPath, "*.mp3");
-            // ReSharper disable once AccessToModifiedClosure
-            songs = [.. songs.Where(x => filesDownloaded.Any(y => y.Contains(x.GetId())))];
-
-            filesDownloaded = Directory.GetFiles(outputPath, "*.webp");
-
-            foreach (var file in filesDownloaded)
-            {
-                if (!File.Exists(file.Replace(".webp", ".mp3"))) continue;
-                using var image = await Image.LoadAsync(file, ct);
-
-                if (ct.IsCancellationRequested)
-                {
-                    return;
-                }
-
-                if (image.Width != image.Height)
-                {
-                    OnYtdlpMessages?.Invoke(this, new ServiceEventArgs("Cropping image: " + file));
-
-                    var width = image.Width;
-                    var height = image.Height;
-                    var smaller = Math.Min(image.Width, image.Height);
-                    image.Mutate(ctx =>
-                        ctx.Crop(
-                            new Rectangle(
-                                width / 2 - smaller / 2,
-                                height / 2 - smaller / 2,
-                                smaller,
-                                smaller
-                            )
+                var width = image.Width;
+                var height = image.Height;
+                var smaller = Math.Min(image.Width, image.Height);
+                image.Mutate(ctx =>
+                    ctx.Crop(
+                        new Rectangle(
+                            width / 2 - smaller / 2,
+                            height / 2 - smaller / 2,
+                            smaller,
+                            smaller
                         )
-                    );
-                }
-
-                await image.SaveAsWebpAsync(file, ct);
-                if (ct.IsCancellationRequested)
-                {
-                    return;
-                }
+                    )
+                );
             }
 
-            Database.AddSongs(playlist, songs);
+            await image.SaveAsWebpAsync(file, ct);
+            if (ct.IsCancellationRequested)
+            {
+                return;
+            }
         }
-        catch (Exception ex)
-        {
-            Console.WriteLine(">>>ERROR<<< " + ex.Message);
-        }
+
+        await using var database = new Database();
+
+        var songIds = songs.Select(s => s.Id).ToList();
+
+        var trackedSongs = await database.Songs
+            .Where(s => songIds.Contains(s.Id))
+            .ToListAsync(ct);
+
+        var existingIds = trackedSongs.Select(s => s.Id).ToHashSet();
+        var newSongs = songs.Where(s => !existingIds.Contains(s.Id)).ToList();
+
+        var playlist = await database.Playlists
+            .Include(p => p.Songs)
+            .FirstAsync(x => x.Id == playlistId, ct);
+
+
+        playlist.Songs = [.. trackedSongs, .. newSongs];
+
+        await database.SaveChangesAsync(ct);
     }
 
     private async Task<Core.Models.Playlist?> PlaylistGetter(string url, string id, CancellationToken ct)
@@ -212,13 +237,13 @@ internal partial class YtdlpWrapper : IDownloadService, IPlaylistProvider
             return null;
         }
 
-        if (!result.IsSuccess || result.FullOutput == null || result.FullOutput.StartsWith("null") ||
+        if (!result.IsSuccess ||
+            result.FullOutput == null ||
+            result.FullOutput.StartsWith("null") ||
             result.ExitCode != 0)
         {
             throw new Exception("yt-dlp exit code: " + result.ExitCode + " please see logs to have more information");
         }
-
-        Console.WriteLine("Playlist information fetched");
 
         Playlist rawPlaylist;
         try
@@ -230,8 +255,6 @@ internal partial class YtdlpWrapper : IDownloadService, IPlaylistProvider
             Console.WriteLine(e);
             throw;
         }
-
-        Console.WriteLine("Playlist fetched information is right");
 
         var thumbnailUrl = rawPlaylist.Thumbnails?.MaxBy(x => x.Id)?.Url;
 
@@ -278,27 +301,28 @@ internal partial class YtdlpWrapper : IDownloadService, IPlaylistProvider
             }
         }
 
-        Console.WriteLine("Playlist thumbnail cropped");
-
         var playlist = new Core.Models.Playlist(rawPlaylist.Title ?? "ERROR",
             rawPlaylist.Uploader ?? "ERROR",
             id,
             Provider.Youtube,
-            thumbnailUrl != null ? id + ".jpg" : null,
-            rawPlaylist
-                .Entries?
-                .Select(x => new Song(x.Id ?? "ERROR ID",
-                    x.Title ?? "ERROR TITLE",
-                    x.Uploader ?? "ERROR UPLOADER",
-                    x.Id != null ? x.Id + ".mp3" : "ERROR ID",
-                    x.Id != null ? x.Id + ".webp" : "ERROR ID",
-                    (int)Math.Floor(x.Duration ?? -1),
-                    DateTime.Now,
-                    Provider.Youtube))
-            ?? []
+            thumbnailUrl != null ? id + ".jpg" : null
         );
+        if (rawPlaylist.Entries != null && rawPlaylist.Entries.Count != 0)
+        {
+            playlist.Songs =
+            [
+                .. rawPlaylist
+                    .Entries
+                    .Select(x => new Song(x.Id ?? "ERROR ID",
+                        x.Title ?? "ERROR TITLE",
+                        x.Uploader ?? "ERROR UPLOADER",
+                        x.Id != null ? x.Id + ".mp3" : "ERROR ID",
+                        x.Id != null ? x.Id + ".webp" : "ERROR ID",
+                        (int)Math.Floor(x.Duration ?? -1),
+                        Provider.Youtube))
+            ];
+        }
 
-        Console.WriteLine("Playlist information successfully downloaded");
         return playlist;
     }
 
@@ -316,7 +340,9 @@ internal partial class YtdlpWrapper : IDownloadService, IPlaylistProvider
             throw new Exception("Id not found in URL: " + url);
         }
 
-        if (Database.PlaylistExists(id))
+        await using var database = new Database();
+
+        if (await database.Playlists.AnyAsync(x => x.Id == id, ct))
         {
             throw new DuplicateNameException("Playlist already exists");
         }
@@ -326,38 +352,42 @@ internal partial class YtdlpWrapper : IDownloadService, IPlaylistProvider
         if (playlist == null)
             throw new Exception("Playlist not found");
 
-        Database.AddPlaylist(playlist);
+        database.Playlists.Add(playlist);
+        await database.SaveChangesAsync(ct);
 
         return playlist;
     }
 
-    public async Task<Core.Models.Playlist?> RefreshPlaylist(Core.Models.Playlist playlist, CancellationToken ct)
+    public async Task<Core.Models.Playlist?> RefreshPlaylist(string playlistId, CancellationToken ct)
     {
-        var temp = await PlaylistGetter($"https://youtube.com/watch?list={playlist.GetId()}", playlist.GetId(), ct);
+        var playlist = await PlaylistGetter($"https://youtube.com/watch?list={playlistId}", playlistId, ct);
 
-        if (temp == null)
+        if (playlist == null)
             throw new Exception("Playlist not found");
 
-        Database.UpdatePlaylist(temp);
+        await using var database = new Database();
+        database.Playlists.Update(playlist);
 
-        return temp;
+
+        return playlist;
     }
 
     private async Task DownloadTools()
     {
+        await using var database = new Database();
+
         //yt-dlp
-        if (YtdlpDatabase.GetVersionYtdlp() == "xx")
+        if (!database.Tools.Any(x => x.Name == "yt-dlp"))
         {
             var ytdlpVersion = await Github.Github.GetLatestReleaseVersionAsync("yt-dlp", "yt-dlp", client);
             var ytdlpExe =
                 await Github.Github.DownloadLatestReleaseAsset("yt-dlp", "yt-dlp", YtdlpFilter, tempOutFolder, client);
 
-            YtdlpDatabase.SetVersionYtdlp(ytdlpVersion);
-            YtdlpDatabase.SetFilenameYtdlp(ytdlpExe);
+            database.Tools.Add(new Tool("yt-dlp", ytdlpVersion, ytdlpExe));
         }
 
         //ffmpeg
-        if (YtdlpDatabase.GetVersionFfmpeg() == "xx")
+        if (!database.Tools.Any(x => x.Name == "ffmpeg"))
         {
             var ffmpegVersion = await Github.Github.GetLatestReleaseVersionAsync("yt-dlp", "FFmpeg-Builds", client);
             var filename =
@@ -369,11 +399,12 @@ internal partial class YtdlpWrapper : IDownloadService, IPlaylistProvider
                          (entry.Key.EndsWith("ffmpeg" + (OperatingSystem.IsWindows() ? ".exe" : "")) ||
                           entry.Key.EndsWith("ffprobe" + (OperatingSystem.IsWindows() ? ".exe" : "")))
             );
-            YtdlpDatabase.SetVersionFfmpeg(ffmpegVersion);
+
+            database.Tools.Add(new Tool("ffmpeg", ffmpegVersion, null));
         }
 
         //deno
-        if (YtdlpDatabase.GetVersionDeno() == "xx")
+        if (!database.Tools.Any(x => x.Name == "deno"))
         {
             var denoVersion = await Github.Github.GetLatestReleaseVersionAsync("denoland", "deno", client);
             var filename =
@@ -382,10 +413,13 @@ internal partial class YtdlpWrapper : IDownloadService, IPlaylistProvider
             ExtractFile(Path.Combine(tempOutFolder, filename), toolsOutFolder,
                 entry => entry is { IsDirectory: false, Key: not null }
             );
-            YtdlpDatabase.SetVersionDeno(denoVersion);
+            database.Tools.Add(new Tool("deno", denoVersion, null));
         }
 
-        ytdlp = GetTool(Path.GetFullPath(Path.Combine(toolsOutFolder, YtdlpDatabase.GetFilenameYtdlp())),
+        await database.SaveChangesAsync();
+
+        ytdlp = GetTool(
+            Path.GetFullPath(Path.Combine(toolsOutFolder, database.Tools.First(x => x.Name == "yt-dlp").Filename!)),
             AppSettings.GetInstance().AppFolder);
     }
 
@@ -410,12 +444,28 @@ internal partial class YtdlpWrapper : IDownloadService, IPlaylistProvider
 
     public async Task UpdateTools()
     {
-        if (YtdlpDatabase.GetVersionYtdlp() != "Manual")
-            await ytdlp.UpdateAsync();
+        await using var database = new Database();
+
+        var tools = database.Tools.ToList();
+
+        var ytdlpData = tools.First(x => x.Name == "yt-dlp");
+        if (ytdlpData.Version != "Manual")
+        {
+            Task.WaitAll(
+                ytdlp.UpdateAsync(),
+                Task.Run(async () =>
+                {
+                    var ytdlpVersion = await Github.Github.GetLatestReleaseVersionAsync("yt-dlp", "yt-dlp", client);
+                    ytdlpData.Version = ytdlpVersion;
+                })
+            );
+            database.Tools.Update(ytdlpData);
+        }
 
         var ffmpegVersion = await Github.Github.GetLatestReleaseVersionAsync("yt-dlp", "FFmpeg-Builds", client);
         //ffmpeg
-        if (YtdlpDatabase.GetVersionFfmpeg() != "Manual" && YtdlpDatabase.GetVersionFfmpeg() != ffmpegVersion)
+        var ffmpegData = tools.First(x => x.Name == "ffmpeg");
+        if (ffmpegData.Version != "Manual" && ffmpegData.Version != ffmpegVersion)
         {
             var filename =
                 await Github.Github.DownloadLatestReleaseAsset("yt-dlp", "FFmpeg-Builds", FfmpegFilter, tempOutFolder,
@@ -426,12 +476,15 @@ internal partial class YtdlpWrapper : IDownloadService, IPlaylistProvider
                          (entry.Key.EndsWith("ffmpeg" + (OperatingSystem.IsWindows() ? ".exe" : "")) ||
                           entry.Key.EndsWith("ffprobe" + (OperatingSystem.IsWindows() ? ".exe" : "")))
             );
-            YtdlpDatabase.SetVersionFfmpeg(ffmpegVersion);
+            ffmpegData.Version = ffmpegVersion;
+
+            database.Tools.Update(ffmpegData);
         }
 
         var denoVersion = await Github.Github.GetLatestReleaseVersionAsync("denoland", "deno", client);
         //deno
-        if (YtdlpDatabase.GetVersionDeno() != "Manual" && YtdlpDatabase.GetVersionDeno() != denoVersion)
+        var denoData = tools.First(x => x.Name == "ffmpeg");
+        if (denoData.Version != "Manual" && denoData.Version != denoVersion)
         {
             var filename =
                 await Github.Github.DownloadLatestReleaseAsset("denoland", "deno", DenoFilter, tempOutFolder, client);
@@ -439,10 +492,12 @@ internal partial class YtdlpWrapper : IDownloadService, IPlaylistProvider
             ExtractFile(Path.Combine(tempOutFolder, filename), toolsOutFolder,
                 entry => entry is { IsDirectory: false, Key: not null }
             );
-            YtdlpDatabase.SetVersionDeno(denoVersion);
+            denoData.Version = denoVersion;
+
+            database.Tools.Update(denoData);
         }
 
-        ytdlp = GetTool(Path.GetFullPath(Path.Combine(toolsOutFolder, YtdlpDatabase.GetFilenameYtdlp())),
+        ytdlp = GetTool(Path.GetFullPath(Path.Combine(toolsOutFolder, ytdlpData.Filename!)),
             AppSettings.GetInstance().AppFolder);
     }
 

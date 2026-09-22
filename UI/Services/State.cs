@@ -24,7 +24,7 @@ public partial class State : ObservableObject
     [ObservableProperty] public partial PlaylistBinding? CurrentPlaylist { get; set; }
     [ObservableProperty] public partial bool IsRefreshing { get; set; } = false;
 
-    public MainView? mainView = null;
+    public MainView? MainView = null;
 
     public List<Task> Tasks = [];
     public readonly AppSettings AppSettings = new();
@@ -71,7 +71,7 @@ public partial class State : ObservableObject
     {
         oldValue?.IsSelected = false;
         newValue?.IsSelected = true;
-        if (oldValue?.Song.GetId() == newValue?.Song.GetId())
+        if (oldValue?.Song.Id == newValue?.Song.Id)
         {
             return;
         }
@@ -81,17 +81,17 @@ public partial class State : ObservableObject
 
     internal PlaylistBinding ToBinding(Playlist playlist)
     {
-        return playlist.GetThumbanil() == null
+        return playlist.Thumbnail == null
             ? new PlaylistBinding(playlist, null)
-            : new PlaylistBinding(playlist, new Bitmap(Path.Combine(AppSettings.AppFolder, "thumbnails", playlist.GetThumbanil()!)));
+            : new PlaylistBinding(playlist, new Bitmap(Path.Combine(AppSettings.AppFolder, "thumbnails", playlist.Thumbnail)));
     }
 
     internal SongBinding ToBinding(Song song)
     {
-        var image = new Bitmap(Path.Combine(AppSettings.AppFolder, "songs", song.GetCover()));
+        var image = new Bitmap(Path.Combine(AppSettings.AppFolder, "songs", song.Cover));
 
-        var sec = song.GetDuration() % 60;
-        var min = (song.GetDuration() - sec) / 60;
+        var sec = song.Duration % 60;
+        var min = (song.Duration - sec) / 60;
 
         var duration = $"{min:00}:{sec:00}";
 

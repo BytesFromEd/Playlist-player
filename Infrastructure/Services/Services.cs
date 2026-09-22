@@ -1,6 +1,7 @@
 ﻿using Core.Models;
-using Infrastructure.Services.Storage;
 using Infrastructure.Services.Ytdlp;
+using Infrastructure.Storage;
+using Microsoft.EntityFrameworkCore;
 using Playlist = Core.Models.Playlist;
 
 namespace Infrastructure.Services;
@@ -21,17 +22,15 @@ public class Services
 
     public Task Initialize(CancellationToken ct)
     {
-        return Task.Run(() =>
+        return Task.Run(async () =>
         {
             var client = new HttpClient();
+
+            await using var context = new Database();
+            await context.Database.MigrateAsync(ct);
+
             ytdlpWrapper = new YtdlpWrapper(client);
         }, ct);
-    }
-
-    public void CreateTable()
-    {
-        Database.CreateInitialTables();
-        YtdlpDatabase.CreateTable();
     }
 
     public async Task<Playlist?> AddPlayist(string url, CancellationToken ct)
@@ -50,55 +49,62 @@ public class Services
         if (playlist == null)
             throw new Exception("Playlist not found in URL: " + url);
 
-        await ytdlpWrapper.DownloadSongs(playlist.GetId(), ct, playlist.GetSongs());
+        await ytdlpWrapper.DownloadSongs(playlist.Id, ct, playlist.Songs);
         return ct.IsCancellationRequested ? null : playlist;
     }
 
-    public async Task<Playlist?> RefreshPlaylist(Playlist playlist, CancellationToken ct)
+    public async Task<Playlist?> RefreshPlaylist(string playlistId, CancellationToken ct)
     {
         if (ytdlpWrapper == null)
         {
             return null;
         }
 
-        var temp = await ytdlpWrapper.RefreshPlaylist(playlist, ct);
+        var playlist = await ytdlpWrapper.RefreshPlaylist(playlistId, ct);
         if (ct.IsCancellationRequested)
         {
             return null;
         }
 
-        if (temp == null)
+        if (playlist == null)
             throw new Exception("Error fetching playlist");
 
-        await ytdlpWrapper.DownloadSongs(temp.GetId(), ct, temp.GetSongs());
-        return ct.IsCancellationRequested ? null : temp;
+        await ytdlpWrapper.DownloadSongs(playlist.Id, ct, playlist.Songs);
+        return ct.IsCancellationRequested ? null : playlist;
     }
 
     public static List<Playlist> GetPlaylists()
     {
-        return Database.GetPlaylists();
+        using var db = new Database();
+        return [.. db.Playlists];
     }
 
     public static Playlist GetPlaylist(string id)
     {
-        var playlist = Database.GetPlaylist(id);
+        using var db = new Database();
+        var playlist = db.Playlists
+            .Include(p => p.Songs)
+            .FirstOrDefault(x => x.Id == id);
 
         return playlist ?? throw new Exception($"Playlist {id} not found");
     }
 
     public static bool PlaylistExists(string id)
     {
-        return Database.PlaylistExists(id);
+        using var db = new Database();
+        return db.Playlists.Any(x => x.Id == id);
     }
 
     public static void RemovePlaylist(Playlist playlist, bool removeSongs)
     {
-        Database.RemovePlaylist(playlist, removeSongs);
+        using var db = new Database();
+        db.Playlists.Remove(playlist);
     }
 
     public static void RemoveSongs(params List<Song> songs)
     {
-        Database.RemoveSongs(songs);
+        using var db = new Database();
+        db.Songs.RemoveRange(songs);
     }
 
     public async Task UpdateTools()

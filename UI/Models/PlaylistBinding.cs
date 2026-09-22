@@ -28,16 +28,16 @@ public partial class PlaylistBinding : ObservableObject
 
     public PlaylistBinding(Playlist playlist, Bitmap? image)
     {
-        Name = playlist.GetName();
-        Id = playlist.GetId();
-        Owner = playlist.GetOwner();
+        Name = playlist.Name;
+        Id = playlist.Id;
+        Owner = playlist.Owner;
         Playlist = playlist;
         Image = image;
         QueueManager = new QueueManager(playlist);
 
         Dispatcher.UIThread.Post(() =>
         {
-            switch (playlist.GetProvider())
+            switch (playlist.Provider)
             {
                 case Core.Models.Enums.Provider.Youtube:
                     if (Application.Current!.TryGetResource("YoutubeIcon", Application.Current.ActualThemeVariant,

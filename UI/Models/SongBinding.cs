@@ -21,15 +21,15 @@ public partial class SongBinding : ObservableObject
 
     public SongBinding(Song song, Bitmap? image, string duration)
     {
-        Title = song.GetTitle();
-        Artist = song.GetArtist();
+        Title = song.Title;
+        Artist = song.Artist;
         Duration = duration;
         Image = image;
         IsSelected = false;
         Song = song;
         Dispatcher.UIThread.Post(() =>
         {
-            switch (song.GetProvider())
+            switch (song.Provider)
             {
                 case Core.Models.Enums.Provider.Youtube:
                     if (Application.Current!.TryGetResource("YoutubeIcon", Application.Current.ActualThemeVariant,

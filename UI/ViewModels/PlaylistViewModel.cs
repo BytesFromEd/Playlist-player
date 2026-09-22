@@ -38,7 +38,7 @@ public partial class PlaylistViewModel : ViewModelBase
         State.AddTask(
             Task.Run(async () =>
             {
-                var temp = await State.Services.RefreshPlaylist(State.CurrentPlaylist.Playlist, State.Cts.Token);
+                var temp = await State.Services.RefreshPlaylist(State.CurrentPlaylist.Playlist.Id, State.Cts.Token);
 
                 if (temp != State.CurrentPlaylist.Playlist && temp != null)
                 {

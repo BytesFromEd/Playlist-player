@@ -34,12 +34,12 @@ public partial class App : Application
             var mainViewModel = Services.GetRequiredService<MainViewModel>();
             var state = Services.GetRequiredService<State>();
             
-            state.mainView = new Views.MainView()
+            state.MainView = new Views.MainView()
             {
                 DataContext = mainViewModel
             };
             
-            desktop.MainWindow = state.mainView;
+            desktop.MainWindow = state.MainView;
             mainViewModel.Load();
         }
 

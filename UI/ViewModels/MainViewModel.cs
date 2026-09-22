@@ -66,9 +66,11 @@ public partial class MainViewModel : ViewModelBase
         this.playlistViewModel = playlistViewModel;
         this.settingsViewModel = settingsViewModel;
 
-        state.Services.CreateTable();
 
         var playlists = Infrastructure.Services.Services.GetPlaylists().Select(state.ToBinding).ToList();
+
+        state.Playlists = new ObservableCollection<PlaylistBinding>(playlists);
+
         if (playlists.Count > 0)
         {
             CurrentViewModel = playlistViewModel;
@@ -79,9 +81,6 @@ public partial class MainViewModel : ViewModelBase
         {
             CurrentViewModel = settingsViewModel;
         }
-
-        state.Playlists = new ObservableCollection<PlaylistBinding>([.. playlists]);
-
 
         player = new MediaPlayer();
 
@@ -111,7 +110,7 @@ public partial class MainViewModel : ViewModelBase
             if (State.CurrentSong == null)
                 return;
 
-            player.SetSong(Path.Combine(State.AppSettings.AppFolder, "songs", State.CurrentSong.Song.GetFile()));
+            player.SetSong(Path.Combine(State.AppSettings.AppFolder, "songs", State.CurrentSong.Song.File));
             Lenght = player.Lenght;
             IsSeeking = false;
             Progress = 0;
@@ -251,8 +250,8 @@ public partial class MainViewModel : ViewModelBase
         switch (parameter)
         {
             case string page:
-                State?.CurrentPlaylist?.IsSelected = false;
-                
+                State.CurrentPlaylist?.IsSelected = false;
+
                 CurrentViewModel = page switch
                 {
                     "settings" => settingsViewModel,
@@ -268,7 +267,7 @@ public partial class MainViewModel : ViewModelBase
                 State.CurrentPlaylist = playlist;
                 CurrentViewModel = playlistViewModel;
                 State.CurrentPlaylist.IsSelected = true;
-                
+
                 break;
         }
     }
@@ -288,13 +287,13 @@ public partial class MainViewModel : ViewModelBase
                         {
                             State.Playlists?.Add(State.ToBinding(playlist));
                         }
-
-                        Url = string.Empty;
                     }
                     catch (Exception e)
                     {
                         Message = e.Message;
                     }
+
+                    Url = string.Empty;
                 })
             );
         }
@@ -303,12 +302,12 @@ public partial class MainViewModel : ViewModelBase
     [RelayCommand]
     private void DeletePlaylist(Playlist playlist)
     {
-        if (State.mainView == null)
+        if (State.MainView == null)
             return;
 
-        var message = $"Delete songs from playlist {playlist.GetId()} ({playlist.GetName()})?";
+        var message = $"Delete songs from playlist {playlist.Id} ({playlist.Name})?";
 
-        State.mainView.OnTogglePopup(this, new RoutedEventArgs());
+        State.MainView.OnTogglePopup(this, new RoutedEventArgs());
     }
 
     public void Load()

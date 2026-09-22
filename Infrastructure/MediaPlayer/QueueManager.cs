@@ -6,7 +6,7 @@ namespace Infrastructure.MediaPlayer;
 public class QueueManager(Playlist playlist) : IQueue
 {
     private int index = 0;
-    private List<Song> queue = playlist.GetSongs();
+    private List<Song> queue = playlist.Songs;
 
     public void Shuffle()
     {
@@ -36,7 +36,7 @@ public class QueueManager(Playlist playlist) : IQueue
 
     public void SetIndex(Song song)
     {
-        index = queue.FindIndex(x => x.GetId() == song.GetId());
+        index = queue.FindIndex(x => x.Id == song.Id);
         if (index < 0)
             throw new IndexOutOfRangeException();
     }

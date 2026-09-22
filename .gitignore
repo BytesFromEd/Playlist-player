@@ -56,9 +56,5 @@ CodeCoverage/
 TestResult.xml
 nunit-*.xml
 
-database.db
-tools
-songs
-
 .idea
 .vs

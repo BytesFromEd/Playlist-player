@@ -1,19 +1,23 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <ItemGroup>
-        <ProjectReference Include="..\Core\Core.csproj"/>
+        <ProjectReference Include="..\Core\Core.csproj" />
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="NAudio" Version="3.1.1-preview.1" />
-        <PackageReference Include="NAudio.SoundFile" Version="3.1.1-preview.1" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.12" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.12">
+          <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+          <PrivateAssets>all</PrivateAssets>
+        </PackageReference>
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.12" />
+        <PackageReference Include="NAudio" Version="3.1.1-preview.2" />
+        <PackageReference Include="NAudio.SoundFile" Version="3.1.1-preview.2" />
         <PackageReference Include="SharpCompress" Version="0.50.4" />
         <PackageReference Include="SixLabors.ImageSharp" Version="4.1.2" />
-        <PackageReference Include="SourceGear.sqlite3" Version="3.53.4"/>
-        <PackageReference Include="System.Data.SQLite" Version="2.0.4"/>
-        <PackageReference Include="Ytdlp.NET" Version="4.1.0"/>
-        <PackageReference Include="NAudio.Wasapi" Version="3.1.1-preview.1" />
-        <PackageReference Include="NAudio.Alsa" Version="3.1.1-preview.1" />
+        <PackageReference Include="Ytdlp.NET" Version="4.2.0" />
+        <PackageReference Include="NAudio.Wasapi" Version="3.1.1-preview.2" />
+        <PackageReference Include="NAudio.Alsa" Version="3.1.1-preview.2" />
     </ItemGroup>
 
     <ItemGroup>
